@@ -123,30 +123,18 @@
             </template>
           </section>
 
-          <!-- 片段预览（done 时展示） -->
-          <section v-if="isDone && clipStore.job?.clip_plan?.segments.length" class="card segments-card">
+          <!-- 时间轴编辑器（done 时展示） -->
+          <section v-if="isDone && clipStore.job?.clip_plan?.segments?.length" class="card timeline-card">
             <div class="card-title">
-              剪辑片段
-              <span class="segments-count">{{ clipStore.job.clip_plan.total_scenes }} 个</span>
+              ✂ 时间轴编辑器
+              <span class="segments-count">{{ clipStore.job.clip_plan.total_scenes }} 个片段</span>
+              <span class="tl-hint">拖动切点调整剪辑范围</span>
             </div>
-            <div class="segments-list">
-              <div
-                v-for="seg in clipStore.job.clip_plan.segments"
-                :key="seg.id"
-                class="segment-row"
-              >
-                <div class="seg-index">{{ seg.id }}</div>
-                <div class="seg-body">
-                  <div class="seg-time">
-                    <span class="seg-ts">{{ fmtSec(seg.start) }}</span>
-                    <span class="seg-arrow">→</span>
-                    <span class="seg-ts">{{ fmtSec(seg.end) }}</span>
-                    <span class="seg-dur">（{{ fmtSec(seg.duration) }}）</span>
-                  </div>
-                  <p v-if="seg.transcript" class="seg-transcript">{{ seg.transcript }}</p>
-                </div>
-              </div>
-            </div>
+            <TimelineEditor
+              :job-id="clipStore.job.id"
+              :clip-plan="clipStore.job.clip_plan"
+              @plan-updated="onPlanUpdated"
+            />
           </section>
 
         </template>
@@ -216,6 +204,7 @@ import { useClipStore } from '@/stores/clip'
 import type { ClipJob, Video } from '@/types'
 import * as videoApi from '@/api/videos'
 import * as clipApi from '@/api/clips'
+import TimelineEditor from '@/components/TimelineEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -323,6 +312,13 @@ async function handleSubmit() {
   }
 }
 
+/** TimelineEditor 时间轴保存回调 */
+function onPlanUpdated(plan: any) {
+  if (clipStore.job) {
+    clipStore.job.clip_plan = plan
+  }
+}
+
 async function retryJob() {
   clipStore.reset()
   await handleSubmit()
@@ -422,6 +418,12 @@ function fmtDate(d: string) {
   background: #1e2130; border-radius: 20px;
   padding: 1px 8px; font-size: 11px; color: #a0a8c0;
 }
+.tl-hint {
+  font-size: 11px; color: #4a5070; font-style: italic;
+  text-transform: none; letter-spacing: 0;
+}
+.timeline-card { padding: 14px 0 0; }
+.timeline-card .card-title { padding: 0 16px 10px; border-bottom: 1px solid #1e2130; margin-bottom: 0; }
 
 /* Video options */
 .video-options { display: flex; flex-direction: column; gap: 8px; }

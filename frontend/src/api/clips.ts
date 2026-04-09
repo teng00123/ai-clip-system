@@ -12,3 +12,14 @@ export const listProjectJobs = (projectId: string) =>
 
 export const getDownloadUrl = (jobId: string) =>
   client.get<{ url: string }>(`/clips/${jobId}/download-url`)
+
+export interface SegmentPatch {
+  id: number
+  start: number
+  end: number
+  transcript?: string
+}
+
+/** 更新剪辑方案 (PATCH /clips/{jobId}/plan) */
+export const patchClipPlan = (jobId: string, segments: SegmentPatch[]) =>
+  client.patch<ClipJob>(`/clips/${jobId}/plan`, { segments })
