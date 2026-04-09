@@ -4,13 +4,25 @@
     <div class="script-header">
       <button class="btn-back" @click="router.push('/dashboard')">← 返回</button>
       <span class="page-title">剧本工坊</span>
+      <div class="format-tabs">
+        <button
+          class="format-tab"
+          :class="{ active: selectedFormat === 'voiceover' }"
+          @click="selectedFormat = 'voiceover'"
+        >🎤 口播文案</button>
+        <button
+          class="format-tab"
+          :class="{ active: selectedFormat === 'storyboard' }"
+          @click="selectedFormat = 'storyboard'"
+        >🎬 分镜脚本</button>
+      </div>
       <div class="header-actions">
         <span v-if="scriptStore.script" class="version-badge">v{{ scriptStore.script.version }}</span>
         <button
           class="btn-ghost"
           :disabled="scriptStore.generating"
           @click="handleGenerate"
-          title="重新生成剧本"
+          :title="`重新生成（${selectedFormat === 'storyboard' ? '分镜' : '口播'}格式）`"
         >{{ scriptStore.generating ? '生成中…' : '重新生成' }}</button>
         <button
           class="btn-primary"
@@ -115,13 +127,57 @@
               <button class="btn-icon" title="AI 改写此段" @click="openRewrite(idx)">✦</button>
               <button class="btn-icon btn-danger" @click="removeSection(idx)">✕</button>
             </div>
+            <!-- voiceover: 口播文案区域 -->
             <textarea
+              v-if="selectedFormat === 'voiceover' || !sec.shot_type"
               v-model="sec.content"
               class="section-content-area"
               rows="4"
               placeholder="段落内容…"
               @input="dirty = true"
             ></textarea>
+
+            <!-- storyboard: 分镜内容区域 -->
+            <div v-else class="storyboard-fields">
+              <div class="sb-row">
+                <label class="sb-label">🎥 景别</label>
+                <input
+                  v-model="sec.shot_type"
+                  class="sb-input"
+                  placeholder="特写/近景/中景/全景/信息图/过渡"
+                  @input="dirty = true"
+                />
+              </div>
+              <div class="sb-row">
+                <label class="sb-label">👁 画面</label>
+                <textarea
+                  v-model="sec.visual"
+                  class="sb-textarea"
+                  rows="2"
+                  placeholder="画面内容描述（场景、动作、构图）"
+                  @input="dirty = true"
+                ></textarea>
+              </div>
+              <div class="sb-row">
+                <label class="sb-label">🎤 口播</label>
+                <textarea
+                  v-model="sec.voiceover"
+                  class="sb-textarea"
+                  rows="3"
+                  placeholder="口播文案"
+                  @input="dirty = true"
+                ></textarea>
+              </div>
+              <div class="sb-row">
+                <label class="sb-label">📝 字幕</label>
+                <input
+                  v-model="sec.caption"
+                  class="sb-input"
+                  placeholder="字幕/花字文案（可为空）"
+                  @input="dirty = true"
+                />
+              </div>
+            </div>
 
             <!-- Inline rewrite panel -->
             <div v-if="rewriteIdx === idx" class="rewrite-panel">
@@ -269,6 +325,16 @@ const saving = ref(false)
 const errMsg = ref('')
 const guideIncomplete = ref(false)
 
+// 剧本格式切换
+type ScriptFormat = 'voiceover' | 'storyboard'
+const selectedFormat = ref<ScriptFormat>('voiceover')
+// 当已有剧本时，从 store 同步格式
+const syncFormatFromStore = () => {
+  if (scriptStore.script?.format) {
+    selectedFormat.value = scriptStore.script.format as ScriptFormat
+  }
+}
+
 // rewrite state
 const rewriteIdx = ref(-1)
 const rewriteInstruction = ref('')
@@ -315,6 +381,7 @@ watch(
 
 onMounted(async () => {
   await scriptStore.loadLatestScript(projectId)
+  syncFormatFromStore()
   if (!scriptStore.script) {
     // check if guide is complete
     try {
@@ -334,16 +401,18 @@ async function handleGenerate() {
   scriptStore.generating = true
 
   await streamSSE(scriptApi.getGenerateStreamUrl(projectId), {
+    method: 'POST',
+    body: { format: selectedFormat.value },
     onToken(token) {
       generatingRaw.value += token
       generatingTokenCount.value++
     },
     async onDone() {
-      // 拼接完成，解析 JSON 并保存
       try {
         const content = JSON.parse(generatingRaw.value)
-        await scriptApi.saveStreamedScript(projectId, content)
+        await scriptApi.saveStreamedScript(projectId, content, selectedFormat.value)
         await scriptStore.loadLatestScript(projectId)
+        syncFormatFromStore()
       } catch (e: any) {
         errMsg.value = '解析生成内容失败，请重试'
       } finally {
@@ -986,5 +1055,79 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* Format Tabs */
+.format-tabs {
+  display: flex;
+  gap: 4px;
+  background: #1a1d2e;
+  border-radius: 8px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.format-tab {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #7a82a0;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+.format-tab:hover { color: #c8ccdd; }
+.format-tab.active {
+  background: #6366f1;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Storyboard section fields */
+.storyboard-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sb-row {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.sb-label {
+  font-size: 12px;
+  color: #7a82a0;
+  padding-top: 6px;
+  white-space: nowrap;
+}
+.sb-input {
+  background: #1a1d2e;
+  border: 1px solid #2a2e45;
+  border-radius: 6px;
+  color: #e8eaf0;
+  font-size: 13px;
+  padding: 6px 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.sb-textarea {
+  background: #1a1d2e;
+  border: 1px solid #2a2e45;
+  border-radius: 6px;
+  color: #e8eaf0;
+  font-size: 13px;
+  padding: 6px 10px;
+  width: 100%;
+  resize: vertical;
+  line-height: 1.5;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.sb-input:focus, .sb-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
 }
 </style>
