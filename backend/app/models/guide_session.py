@@ -15,4 +15,8 @@ class GuideSession(Base):
     brief: Mapped[dict] = mapped_column(JsonType, nullable=True)
     step: Mapped[int] = mapped_column(Integer, default=0)
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 动态问答模式：存储完整对话历史 [{role: str, content: str}]
+    conversation_history: Mapped[list] = mapped_column(JsonType, default=list, nullable=True)
+    # 问答模式标记
+    mode: Mapped[str] = mapped_column(String, default="static", nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
