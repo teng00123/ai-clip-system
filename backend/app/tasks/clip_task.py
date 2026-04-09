@@ -434,3 +434,89 @@ def _render_video(
             os.unlink(concat_file)
         except OSError:
             pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Rerender task — skips scene-detection & ASR, uses existing clip_plan
+# ─────────────────────────────────────────────────────────────────────────────
+
+@celery_app.task(
+    bind=True,
+    max_retries=0,
+    name="clip_task.rerender_clip_job",
+)
+def rerender_clip_job(self, job_id: str, video_id: str):
+    """
+    Re-render a clip job using the existing (possibly user-edited) clip_plan.
+    Skips scene detection and ASR — just renders from the saved segments.
+    """
+    logger.info("Starting rerender job %s for video %s", job_id, video_id)
+
+    try:
+        _update_job(job_id, status="processing", progress=5)
+        _publish(job_id, "progress", 5, "Starting re-render…")
+
+        # Load clip_plan from DB
+        engine = _make_sync_engine()
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("SELECT clip_plan FROM clip_jobs WHERE id=:id"),
+                {"id": job_id},
+            ).fetchone()
+        if not row or not row[0]:
+            raise ValueError(f"No clip_plan found for job {job_id}")
+
+        raw = row[0]
+        plan = json.loads(raw) if isinstance(raw, str) else raw
+        segments = plan.get("segments", [])
+        if not segments:
+            raise ValueError("clip_plan has no segments")
+
+        # Convert segments to scene dicts for _render_video
+        scenes = [{"start": s["start"], "end": s["end"]} for s in segments]
+
+        _publish(job_id, "progress", 10, "Downloading video…")
+        storage_path = _fetch_video_storage_path(video_id)
+
+        with tempfile.TemporaryDirectory(prefix="rerender_") as tmpdir:
+            local_video = os.path.join(tmpdir, "input.mp4")
+            from app.utils.storage import download_file
+            download_file(storage_path, local_video)
+            logger.info("Video downloaded to %s", local_video)
+
+            _publish(job_id, "progress", 30, "Rebuilding subtitles…")
+            # Rebuild SRT from plan transcript
+            srt_path = os.path.join(tmpdir, "subtitles.srt")
+            subtitle_list = [
+                {"start": s["start"], "end": s["end"], "text": s.get("transcript", "")}
+                for s in segments
+                if s.get("transcript", "").strip()
+            ]
+            has_subs = _write_srt(subtitle_list, srt_path) if subtitle_list else False
+
+            _publish(job_id, "progress", 50, "Rendering video…")
+            output_local = os.path.join(tmpdir, "output.mp4")
+            _render_video(local_video, scenes, srt_path if has_subs else None, output_local)
+            out_size = os.path.getsize(output_local) if os.path.exists(output_local) else 0
+            logger.info("Rerender complete: %s (%d bytes)", output_local, out_size)
+
+            _publish(job_id, "progress", 90, "Uploading result…")
+            output_object = f"outputs/{job_id}/output.mp4"
+            from app.utils.storage import upload_file
+            upload_file(output_object, output_local, content_type="video/mp4")
+
+        _update_job(
+            job_id,
+            status="done",
+            progress=100,
+            clip_plan=plan,
+            output_path=output_object,
+        )
+        _publish(job_id, "done", 100, "Re-render complete! Your clip is ready.")
+        logger.info("Rerender job %s completed", job_id)
+
+    except Exception as exc:
+        logger.exception("Rerender job %s failed: %s", job_id, exc)
+        _update_job(job_id, status="failed", progress=0, error_msg=str(exc))
+        _publish(job_id, "error", -1, f"Rerender failed: {exc}")
+        raise

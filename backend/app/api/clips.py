@@ -15,6 +15,7 @@ from app.utils.deps import (
     get_guide_session_for_project,
 )
 from app.utils.storage import get_presigned_url
+from app.tasks.clip_task import rerender_clip_job
 import json
 
 router = APIRouter(prefix="/clips", tags=["clips"])
@@ -119,3 +120,48 @@ async def get_download_url(job_id: str, db: AsyncSession = Depends(get_db), user
         raise HTTPException(status_code=400, detail="Output not ready")
     url = get_presigned_url(job.output_path, expires_hours=2)
     return {"url": url, "expires_in": "2h"}
+
+
+@router.post("/{job_id}/rerender", response_model=ClipJobOut)
+async def rerender_clip_job_endpoint(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    用当前 clip_plan 重新渲染视频。
+    要求 job 处于 done/failed 状态，且 clip_plan 已存在。
+    """
+    job = await get_clip_job_for_user(job_id, db, user)
+
+    if job.status not in ("done", "failed"):
+        raise HTTPException(
+            status_code=400,
+            detail="Can only rerender a completed/failed job",
+        )
+
+    plan = job.clip_plan
+    if not plan or not plan.get("segments"):
+        raise HTTPException(
+            status_code=400,
+            detail="clip_plan is empty — cannot rerender without segments",
+        )
+
+    if not job.video_id:
+        raise HTTPException(status_code=400, detail="No video associated with this job")
+
+    # Reset to pending before dispatching
+    await db.execute(
+        update(ClipJob)
+        .where(ClipJob.id == job_id)
+        .values(status="pending", progress=0, error_msg=None)
+    )
+    await db.flush()
+
+    # Dispatch Celery rerender task
+    rerender_clip_job.delay(job_id, job.video_id)
+
+    # Return updated job
+    result = await db.execute(select(ClipJob).where(ClipJob.id == job_id))
+    updated = result.scalars().first()
+    return ClipJobOut.model_validate(updated)
