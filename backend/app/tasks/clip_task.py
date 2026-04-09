@@ -52,15 +52,16 @@ def _make_sync_engine():
     """
     Derive a sync SQLAlchemy engine from DATABASE_URL.
     Supports:
+      mysql+aiomysql://...      → pymysql
       postgresql+asyncpg://...  → psycopg2
       sqlite+aiosqlite://...    → sqlite
-      postgresql://...          → psycopg2 (unchanged)
-      sqlite:///...             → sqlite (unchanged)
     """
     from sqlalchemy import create_engine
 
     url = settings.DATABASE_URL
-    if "+asyncpg" in url:
+    if "+aiomysql" in url:
+        url = url.replace("+aiomysql", "+pymysql")
+    elif "+asyncpg" in url:
         url = url.replace("+asyncpg", "")
     elif "+aiosqlite" in url:
         url = url.replace("+aiosqlite", "")

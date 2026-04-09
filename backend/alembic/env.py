@@ -33,6 +33,7 @@ def _sync_url(url: str) -> str:
     """Strip async driver prefixes so the sync engine can handle migrations."""
     url = re.sub(r"\+asyncpg", "", url)
     url = re.sub(r"\+aiosqlite", "", url)
+    url = re.sub(r"\+aiomysql", "+pymysql", url)
     return url
 
 
