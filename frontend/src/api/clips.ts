@@ -23,3 +23,7 @@ export interface SegmentPatch {
 /** 更新剪辑方案 (PATCH /clips/{jobId}/plan) */
 export const patchClipPlan = (jobId: string, segments: SegmentPatch[]) =>
   client.patch<ClipJob>(`/clips/${jobId}/plan`, { segments })
+
+/** 以当前 clip_plan 重新渲染视频 (POST /clips/{jobId}/rerender) */
+export const rerenderClip = (jobId: string) =>
+  client.post<ClipJob>(`/clips/${jobId}/rerender`)
