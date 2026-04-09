@@ -175,6 +175,20 @@
           </div>
         </div>
 
+        <!-- 重渲染卡 -->
+        <div class="sidebar-card rerender-card" v-if="isDone && clipStore.job?.clip_plan?.segments?.length">
+          <div class="sidebar-title">♻️ 重新渲染</div>
+          <p class="next-hint">在时间轴编辑完片段后，点击按鈕以新方案重生成视频。</p>
+          <button
+            class="btn-primary btn-block"
+            :disabled="isRerendering"
+            @click="handleRerender"
+          >
+            {{ isRerendering ? '重渲染中…' : '重新生成视频' }}
+          </button>
+          <p v-if="rerenderError" class="rerender-error">❌ {{ rerenderError }}</p>
+        </div>
+
         <!-- 导出卡 -->
         <div class="sidebar-card next-card" v-if="canExport">
           <div class="sidebar-title">✅ 下一步</div>
@@ -249,6 +263,10 @@ const isDone    = computed(() => clipStore.job?.status === 'done')
 const isFailed  = computed(() => clipStore.job?.status === 'failed')
 const canExport = computed(() => isDone.value && !!clipStore.job?.output_path)
 
+// ── Rerender state ────────────────────────────────────────────────────────────
+const isRerendering = ref(false)
+const rerenderError = ref('')
+
 const statusLabel = computed(() => statusLabelOf(clipStore.job?.status ?? ''))
 const statusClass = computed(() => clipStore.job?.status ?? 'pending')
 
@@ -316,6 +334,23 @@ async function handleSubmit() {
 function onPlanUpdated(plan: any) {
   if (clipStore.job) {
     clipStore.job.clip_plan = plan
+  }
+}
+
+/** 重新生成视频（使用编辑后的 clip_plan） */
+async function handleRerender() {
+  if (!clipStore.job) return
+  isRerendering.value = true
+  rerenderError.value = ''
+  try {
+    const { data } = await clipApi.rerenderClip(clipStore.job.id)
+    // Update store with pending status, then poll via WS as usual
+    clipStore.job = data
+    startEta()
+  } catch (e: any) {
+    rerenderError.value = e?.response?.data?.detail || '重渲染请求失败'
+  } finally {
+    isRerendering.value = false
   }
 }
 
@@ -555,6 +590,8 @@ function fmtDate(d: string) {
 
 .next-card { border-color: #2a4a35; }
 .next-hint { font-size: 13px; color: #7a82a0; line-height: 1.5; }
+.rerender-card { border-color: #2a3a5a; }
+.rerender-error { font-size: 12px; color: #f87171; margin-top: 8px; }
 .tips-list {
   list-style: none; padding: 0; margin: 0;
   display: flex; flex-direction: column; gap: 6px;
