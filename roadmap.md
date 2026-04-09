@@ -86,7 +86,7 @@ Week  1─────────6  7─────────12  13───
 **目标**：从固定问题集升级到 LLM 动态对话，剧本支持段落级重写
 
 **后端**
-- [ ] 🔴 动态问答引擎：LangChain ConversationChain，基于前序答案生成下一问题（替换固定题库）
+- [x] 🔴 动态问答引擎：LangChain ConversationChain，基于前序答案生成下一问题（替换固定题库）
 - [ ] 🔴 段落重写 API：`POST /api/scripts/{script_id}/rewrite`，接受 `{ paragraph_index, instruction }` → LLM 重写单段
 - [ ] 🔴 剧本格式支持：新增 `format` 字段，支持 `voiceover`（口播）/ `storyboard`（分镜）两种格式
 - [ ] 🟡 SSE 流式输出：剧本生成改为 Server-Sent Events，前端逐字显示（改善长等待体验）
