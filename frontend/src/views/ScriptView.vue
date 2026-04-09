@@ -122,23 +122,45 @@
 
             <!-- Inline rewrite panel -->
             <div v-if="rewriteIdx === idx" class="rewrite-panel">
-              <textarea
-                v-model="rewriteInstruction"
-                class="rewrite-input"
-                rows="2"
-                placeholder="改写要求，例如：更口语化、缩短到 15 秒…"
-              ></textarea>
-              <div class="rewrite-actions">
-                <button class="btn-ghost btn-sm" @click="rewriteIdx = -1">取消</button>
-                <button
-                  class="btn-primary btn-sm"
-                  :disabled="rewriting || !rewriteInstruction.trim()"
-                  @click="submitRewrite(idx)"
-                >
-                  <span v-if="rewriting" class="mini-spin"></span>
-                  <span v-else>AI 改写</span>
-                </button>
-              </div>
+              <!-- Step 1: instruction input -->
+              <template v-if="!rewritePreview[idx]">
+                <textarea
+                  v-model="rewriteInstruction"
+                  class="rewrite-input"
+                  rows="2"
+                  placeholder="改写要求，例如：更口语化、缩短到 15 秒、加入数据支撑…"
+                ></textarea>
+                <div class="rewrite-actions">
+                  <button class="btn-ghost btn-sm" @click="closeRewrite">取消</button>
+                  <button
+                    class="btn-primary btn-sm"
+                    :disabled="rewriting || !rewriteInstruction.trim()"
+                    @click="submitRewrite(idx)"
+                  >
+                    <span v-if="rewriting" class="mini-spin"></span>
+                    <span v-else>✦ AI 改写</span>
+                  </button>
+                </div>
+              </template>
+
+              <!-- Step 2: preview diff -->
+              <template v-else>
+                <div class="diff-wrap">
+                  <div class="diff-col diff-old">
+                    <div class="diff-label">原文</div>
+                    <div class="diff-text">{{ rewritePreview[idx].original }}</div>
+                  </div>
+                  <div class="diff-col diff-new">
+                    <div class="diff-label">改写后 ✦</div>
+                    <div class="diff-text">{{ rewritePreview[idx].rewritten }}</div>
+                  </div>
+                </div>
+                <div class="rewrite-actions">
+                  <button class="btn-ghost btn-sm" @click="discardRewrite(idx)">放弃</button>
+                  <button class="btn-primary btn-sm" @click="applyRewrite(idx)">✓ 应用改写</button>
+                </div>
+              </template>
+
               <p v-if="rewriteErr" class="err-msg sm">{{ rewriteErr }}</p>
             </div>
           </div>
@@ -218,6 +240,7 @@ import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useScriptStore } from '@/stores/script'
 import * as scriptApi from '@/api/scripts'
+import type { ParagraphRewriteResult } from '@/api/scripts'
 import * as guideApi from '@/api/guide'
 import type { ScriptContent, ScriptSection } from '@/types'
 
@@ -237,6 +260,8 @@ const rewriteIdx = ref(-1)
 const rewriteInstruction = ref('')
 const rewriting = ref(false)
 const rewriteErr = ref('')
+// key: paragraph index → preview result
+const rewritePreview = ref<Record<number, ParagraphRewriteResult>>({})
 
 // leave confirm
 const showLeaveConfirm = ref(false)
@@ -321,6 +346,14 @@ function openRewrite(idx: number) {
   rewriteIdx.value = idx
   rewriteInstruction.value = ''
   rewriteErr.value = ''
+  // clear any previous preview for this index
+  delete rewritePreview.value[idx]
+}
+
+function closeRewrite() {
+  rewriteIdx.value = -1
+  rewriteInstruction.value = ''
+  rewriteErr.value = ''
 }
 
 async function submitRewrite(idx: number) {
@@ -328,21 +361,40 @@ async function submitRewrite(idx: number) {
   rewriting.value = true
   rewriteErr.value = ''
   try {
-    const sectionContent = draft.sections[idx].content
-    const res = await scriptApi.rewriteSection(
+    const res = await scriptApi.rewriteParagraph(
       scriptStore.script.id,
-      sectionContent,
+      idx,
       rewriteInstruction.value.trim(),
+      true, // preview=true
     )
-    draft.sections[idx].content = res.data?.rewritten_content ?? draft.sections[idx].content
-    dirty.value = true
-    rewriteIdx.value = -1
-    rewriteInstruction.value = ''
+    // Store preview result, show diff
+    rewritePreview.value = { ...rewritePreview.value, [idx]: res.data }
   } catch (e: any) {
     rewriteErr.value = e?.response?.data?.detail || '改写失败，请重试'
   } finally {
     rewriting.value = false
   }
+}
+
+async function applyRewrite(idx: number) {
+  if (!scriptStore.script) return
+  const preview = rewritePreview.value[idx]
+  if (!preview) return
+  try {
+    await scriptApi.applyParagraphRewrite(scriptStore.script.id, idx, preview.rewritten)
+    draft.sections[idx].content = preview.rewritten
+    dirty.value = false // already saved by backend
+    discardRewrite(idx)
+  } catch (e: any) {
+    rewriteErr.value = e?.response?.data?.detail || '应用失败，请重试'
+  }
+}
+
+function discardRewrite(idx: number) {
+  delete rewritePreview.value[idx]
+  rewriteIdx.value = -1
+  rewriteInstruction.value = ''
+  rewriteErr.value = ''
 }
 
 function goToUpload() {
@@ -598,6 +650,38 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Diff view */
+.diff-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.diff-col {
+  background: #14172b;
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.diff-old { border: 1px solid #3a2020; }
+.diff-new { border: 1px solid #1a3a20; }
+.diff-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.diff-old .diff-label { color: #f87171; }
+.diff-new .diff-label { color: #4ade80; }
+.diff-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #c8ccdd;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Icon buttons */
