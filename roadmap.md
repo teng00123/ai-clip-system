@@ -89,14 +89,14 @@ Week  1─────────6  7─────────12  13───
 - [x] 🔴 动态问答引擎：LangChain ConversationChain，基于前序答案生成下一问题（替换固定题库）
 - [ ] 🔴 段落重写 API：`POST /api/scripts/{script_id}/rewrite`，接受 `{ paragraph_index, instruction }` → LLM 重写单段
 - [ ] 🔴 剧本格式支持：新增 `format` 字段，支持 `voiceover`（口播）/ `storyboard`（分镜）两种格式
-- [ ] 🟡 SSE 流式输出：剧本生成改为 Server-Sent Events，前端逐字显示（改善长等待体验）
+- [x] 🟡 SSE 流式输出：剧本生成改为 Server-Sent Events，前端逐字显示（改善长等待体验）
 - [ ] 🟡 Brief JSON schema 扩展：补充 `tone`（语气）、`target_audience`、`duration_target` 字段
 
 **前端**
 - [ ] 🔴 问答界面升级：支持「动态问题」模式（服务端流式返回问题文本）
 - [ ] 🔴 剧本编辑器增加「AI 重写」按钮（选中段落 → 输入指令 → 实时预览新版本）
 - [ ] 🟡 剧本格式切换 Tab（口播文案 / 分镜脚本）
-- [ ] 🟡 SSE 流式渲染（打字机效果）
+- [x] 🟡 SSE 流式渲染（打字机效果）
 
 **测试**
 - [ ] 🔴 新增 LLM 动态问答 mock 测试（ConversationChain 全 mock）
