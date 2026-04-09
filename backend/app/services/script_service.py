@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from openai import AsyncOpenAI
 from app.config import settings
 
@@ -65,3 +65,87 @@ async def rewrite_section(section_content: str, instruction: str) -> str:
         temperature=0.7,
     )
     return response.choices[0].message.content.strip()
+
+
+REWRITE_SYSTEM_PROMPT = """\
+你是一位专业的短视频口播文案改写专家。根据用户的改写指令，对指定段落进行精准改写。
+
+【要求】
+1. 只改写给定段落，不改动整体故事结构
+2. 严格遵循改写指令（如：更幽默、更简短、更专业、加数据、换案例等）
+3. 改写后语句自然流畅，适合真人口播
+4. 如无特殊指令，保持与原文相近的字数（±20%）
+5. 只返回改写后的段落文本，不加任何说明\
+"""
+
+
+async def rewrite_paragraph(
+    script_content: Dict,
+    paragraph_index: int,
+    instruction: str,
+) -> Dict[str, Any]:
+    """
+    对剧本 content.sections[paragraph_index] 进行 LLM 改写。
+
+    Returns:
+        {
+            "paragraph_index": int,
+            "original": str,          # 原始 content 字符串
+            "rewritten": str,         # 改写后的文本
+            "section_title": str,     # 段落标题
+            "instruction": str,       # 用户指令
+        }
+    Raises:
+        ValueError: paragraph_index 越界
+        RuntimeError: LLM 调用失败
+    """
+    sections = script_content.get("sections", [])
+    if not sections or paragraph_index < 0 or paragraph_index >= len(sections):
+        raise ValueError(
+            f"paragraph_index {paragraph_index} out of range "
+            f"(sections count: {len(sections)})"
+        )
+
+    section = sections[paragraph_index]
+    original_content = section.get("content", "")
+    section_title = section.get("title", f"段落 {paragraph_index + 1}")
+
+    # 附加上下文：标题 + 原文 + 全局简报（仅 hook + title，帮助 LLM 理解整体风格）
+    context = (
+        f"【视频标题】{script_content.get('title', '')}\n"
+        f"【当前段落】{section_title}\n"
+        f"【原文】\n{original_content}\n\n"
+        f"【改写指令】{instruction}"
+    )
+
+    response = await client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": REWRITE_SYSTEM_PROMPT},
+            {"role": "user", "content": context},
+        ],
+        temperature=0.75,
+        max_tokens=1024,
+    )
+
+    rewritten = response.choices[0].message.content.strip()
+
+    return {
+        "paragraph_index": paragraph_index,
+        "original": original_content,
+        "rewritten": rewritten,
+        "section_title": section_title,
+        "instruction": instruction,
+    }
+
+
+def apply_rewrite(script_content: Dict, paragraph_index: int, rewritten_text: str) -> Dict:
+    """
+    将改写后的文本应用到 script_content，返回新的 content dict（不修改原对象）。
+    """
+    import copy
+    new_content = copy.deepcopy(script_content)
+    sections = new_content.get("sections", [])
+    if 0 <= paragraph_index < len(sections):
+        sections[paragraph_index]["content"] = rewritten_text
+    return new_content
