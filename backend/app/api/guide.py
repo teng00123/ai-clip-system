@@ -74,6 +74,36 @@ async def start_guide(
     return GuideSessionOut.model_validate(session)
 
 
+@router.get("/{project_id}/session", response_model=GuideSessionOut)
+async def get_session(
+    project_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """获取当前会话（不创建），不存在返回 404"""
+    await get_project_for_user(project_id, db, user)
+    from sqlalchemy import select as sa_select
+    from app.models.guide_session import GuideSession
+    result = await db.execute(
+        sa_select(GuideSession).where(GuideSession.project_id == project_id)
+    )
+    session = result.scalars().first()
+    if not session:
+        raise HTTPException(status_code=404, detail="No guide session found")
+    return GuideSessionOut.model_validate(session)
+
+
+@router.get("/{project_id}/dynamic/available")
+async def dynamic_available(
+    project_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """[前端]检查动态模式是否可用"""
+    await get_project_for_user(project_id, db, user)
+    return {"available": is_dynamic_mode_available()}
+
+
 @router.get("/{project_id}/mode")
 async def get_mode(
     project_id: str,
