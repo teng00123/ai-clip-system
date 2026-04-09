@@ -17,7 +17,17 @@ export const updateScript = (scriptId: string, content: object) =>
 export const rewriteSection = (scriptId: string, sectionContent: string, instruction: string) =>
   client.post(`/scripts/${scriptId}/rewrite-section`, { section_content: sectionContent, instruction })
 
-/** 新版按 index 改写段落（支持预览模式） */
+/** 将 SSE 流式生成结束后前端拼接的完整 JSON 保存到 DB */
+export const saveStreamedScript = (projectId: string, content: object) =>
+  client.post<Script>(`/scripts/generate/${projectId}/save`, { content })
+
+/** SSE 流式生成剧本，返回 EventSource URL + token 头，供 fetch streaming 使用 */
+export const getGenerateStreamUrl = (projectId: string) =>
+  `/api/scripts/generate/${projectId}/stream`
+
+/** SSE 流式段落改写，返回 fetch stream URL */
+export const getRewriteStreamUrl = (scriptId: string) =>
+  `/api/scripts/${scriptId}/rewrite/stream`
 export interface ParagraphRewriteResult {
   script_id: string
   paragraph_index: number

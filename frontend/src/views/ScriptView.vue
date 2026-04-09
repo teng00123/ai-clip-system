@@ -36,6 +36,9 @@
         <span class="ai-icon">✦</span>
       </div>
       <p class="splash-label">{{ scriptStore.generating ? 'AI 正在创作中…' : '加载中…' }}</p>
+      <p v-if="scriptStore.generating && generatingTokenCount > 0" class="token-counter">
+        已接收 {{ generatingTokenCount }} 个 token
+      </p>
     </div>
 
     <!-- error -->
@@ -123,7 +126,7 @@
             <!-- Inline rewrite panel -->
             <div v-if="rewriteIdx === idx" class="rewrite-panel">
               <!-- Step 1: instruction input -->
-              <template v-if="!rewritePreview[idx]">
+              <template v-if="!rewritePreview[idx] && !rewriteStreaming[idx]">
                 <textarea
                   v-model="rewriteInstruction"
                   class="rewrite-input"
@@ -143,7 +146,15 @@
                 </div>
               </template>
 
-              <!-- Step 2: preview diff -->
+              <!-- Step 1.5: SSE streaming (typewriter) -->
+              <template v-else-if="rewriteStreaming[idx] !== undefined && !rewritePreview[idx]">
+                <div class="streaming-wrap">
+                  <div class="streaming-label">✦ AI 正在改写中…</div>
+                  <div class="streaming-text">{{ rewriteStreaming[idx] }}<span class="cursor-blink">|</span></div>
+                </div>
+              </template>
+
+              <!-- Step 2: preview diff (or streaming) -->
               <template v-else>
                 <div class="diff-wrap">
                   <div class="diff-col diff-old">
@@ -152,7 +163,9 @@
                   </div>
                   <div class="diff-col diff-new">
                     <div class="diff-label">改写后 ✦</div>
-                    <div class="diff-text">{{ rewritePreview[idx].rewritten }}</div>
+                    <div class="diff-text">
+                      {{ rewritePreview[idx].rewritten }}
+                    </div>
                   </div>
                 </div>
                 <div class="rewrite-actions">
@@ -241,6 +254,7 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useScriptStore } from '@/stores/script'
 import * as scriptApi from '@/api/scripts'
 import type { ParagraphRewriteResult } from '@/api/scripts'
+import { streamSSE } from '@/utils/sse'
 import * as guideApi from '@/api/guide'
 import type { ScriptContent, ScriptSection } from '@/types'
 
@@ -262,7 +276,13 @@ const rewriting = ref(false)
 const rewriteErr = ref('')
 // key: paragraph index → preview result
 const rewritePreview = ref<Record<number, ParagraphRewriteResult>>({})
+// SSE streaming text for rewrite (shown in diff new column while streaming)
+const rewriteStreaming = ref<Record<number, string>>({})
+const rewriteStreamDone = ref<Record<number, boolean>>({})
 
+// Generate with SSE streaming (typewriter)
+const generatingRaw = ref('') // raw JSON accumulator during SSE
+const generatingTokenCount = ref(0)
 // leave confirm
 const showLeaveConfirm = ref(false)
 let pendingLeaveNext: (() => void) | null = null
@@ -309,11 +329,34 @@ onMounted(async () => {
 
 async function handleGenerate() {
   errMsg.value = ''
-  try {
-    await scriptStore.generateScript(projectId)
-  } catch (e: any) {
-    errMsg.value = e?.response?.data?.detail || '生成失败，请重试'
-  }
+  generatingRaw.value = ''
+  generatingTokenCount.value = 0
+  scriptStore.generating = true
+
+  await streamSSE(scriptApi.getGenerateStreamUrl(projectId), {
+    onToken(token) {
+      generatingRaw.value += token
+      generatingTokenCount.value++
+    },
+    async onDone() {
+      // 拼接完成，解析 JSON 并保存
+      try {
+        const content = JSON.parse(generatingRaw.value)
+        await scriptApi.saveStreamedScript(projectId, content)
+        await scriptStore.loadLatestScript(projectId)
+      } catch (e: any) {
+        errMsg.value = '解析生成内容失败，请重试'
+      } finally {
+        scriptStore.generating = false
+        generatingRaw.value = ''
+      }
+    },
+    onError(msg) {
+      errMsg.value = msg || '生成失败，请重试'
+      scriptStore.generating = false
+      generatingRaw.value = ''
+    },
+  })
 }
 
 async function handleSave() {
@@ -360,20 +403,52 @@ async function submitRewrite(idx: number) {
   if (!scriptStore.script || rewriting.value || !rewriteInstruction.value.trim()) return
   rewriting.value = true
   rewriteErr.value = ''
-  try {
-    const res = await scriptApi.rewriteParagraph(
-      scriptStore.script.id,
-      idx,
-      rewriteInstruction.value.trim(),
-      true, // preview=true
-    )
-    // Store preview result, show diff
-    rewritePreview.value = { ...rewritePreview.value, [idx]: res.data }
-  } catch (e: any) {
-    rewriteErr.value = e?.response?.data?.detail || '改写失败，请重试'
-  } finally {
-    rewriting.value = false
-  }
+  // 初始化流式状态
+  rewriteStreaming.value = { ...rewriteStreaming.value, [idx]: '' }
+  rewriteStreamDone.value = { ...rewriteStreamDone.value, [idx]: false }
+
+  const instructionSnapshot = rewriteInstruction.value.trim()
+  const originalContent = draft.sections[idx]?.content ?? ''
+  const sectionTitle = draft.sections[idx]?.title ?? `段落 ${idx + 1}`
+
+  await streamSSE(scriptApi.getRewriteStreamUrl(scriptStore.script.id), {
+    method: 'POST',
+    body: {
+      paragraph_index: idx,
+      instruction: instructionSnapshot,
+      preview: true,
+    },
+    onToken(token) {
+      rewriteStreaming.value = {
+        ...rewriteStreaming.value,
+        [idx]: (rewriteStreaming.value[idx] ?? '') + token,
+      }
+    },
+    onDone() {
+      const rewritten = rewriteStreaming.value[idx] ?? ''
+      // 流式完成，转为预览模式（显示对比）
+      rewritePreview.value = {
+        ...rewritePreview.value,
+        [idx]: {
+          script_id: scriptStore.script!.id,
+          paragraph_index: idx,
+          section_title: sectionTitle,
+          original: originalContent,
+          rewritten,
+          instruction: instructionSnapshot,
+          applied: false,
+        } as ParagraphRewriteResult,
+      }
+      rewriteStreamDone.value = { ...rewriteStreamDone.value, [idx]: true }
+      rewriting.value = false
+    },
+    onError(msg) {
+      rewriteErr.value = msg || '改写失败，请重试'
+      rewriting.value = false
+      // 清除未完成的流
+      delete rewriteStreaming.value[idx]
+    },
+  })
 }
 
 async function applyRewrite(idx: number) {
@@ -392,6 +467,8 @@ async function applyRewrite(idx: number) {
 
 function discardRewrite(idx: number) {
   delete rewritePreview.value[idx]
+  delete rewriteStreaming.value[idx]
+  delete rewriteStreamDone.value[idx]
   rewriteIdx.value = -1
   rewriteInstruction.value = ''
   rewriteErr.value = ''
@@ -488,6 +565,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
   padding: 60px 24px;
 }
 .splash-label { color: #7a82a0; font-size: 15px; }
+.token-counter { color: #4f6ef7; font-size: 13px; opacity: 0.8; }
 .empty-icon { font-size: 48px; }
 
 /* AI pulse animation */
@@ -682,6 +760,43 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnl
   color: #c8ccdd;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Streaming typewriter */
+.streaming-wrap {
+  background: #0a0e1a;
+  border: 1px solid #2a3a60;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.streaming-label {
+  font-size: 11px;
+  color: #4f6ef7;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  animation: ai-blink 1s ease-in-out infinite alternate;
+}
+.streaming-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #c8ccdd;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 40px;
+}
+.cursor-blink {
+  display: inline-block;
+  color: #4f6ef7;
+  font-weight: 700;
+  animation: cursor-blink 0.8s step-end infinite;
+}
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 /* Icon buttons */

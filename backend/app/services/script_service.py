@@ -149,3 +149,96 @@ def apply_rewrite(script_content: Dict, paragraph_index: int, rewritten_text: st
     if 0 <= paragraph_index < len(sections):
         sections[paragraph_index]["content"] = rewritten_text
     return new_content
+
+
+# ── SSE 流式生成 ─────────────────────────────────────────────────────────────
+
+async def generate_script_stream(brief: Dict[str, Any]):
+    """
+    流式生成剧本，逐 token yield 字符串。
+    调用方负责将 token 拼接并在末尾解析 JSON。
+
+    Yields:
+        str  — 每个文本 token（data chunk）
+        最后 yield "data: [DONE]\\n\\n" 表示结束
+    """
+    user_prompt = f"""Please create a short video script based on this creator brief:
+
+Topic Category: {brief.get('topic_category', 'N/A')}
+Content Direction: {brief.get('content_direction', 'N/A')}
+Target Audience: {brief.get('target_audience', 'N/A')}
+Video Style: {brief.get('video_style', 'N/A')}
+Target Duration: {brief.get('video_duration', 'N/A')}
+Reference Accounts: {brief.get('reference_accounts', 'None')}
+Special Requirements: {brief.get('special_requirements', 'None')}
+
+Requirements:
+1. Write the hook to immediately grab attention in the first 3 seconds
+2. Structure the main body in clear sections matching the target duration
+3. End with a strong CTA that encourages likes, follows, or comments
+4. Write in a natural, conversational Chinese tone suitable for voiceover
+5. Return only valid JSON, no markdown fences"""
+
+    stream = await client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.7,
+        response_format={"type": "json_object"},
+        stream=True,
+    )
+
+    async for chunk in stream:
+        delta = chunk.choices[0].delta
+        if delta.content:
+            yield delta.content
+
+
+async def rewrite_paragraph_stream(
+    script_content: Dict,
+    paragraph_index: int,
+    instruction: str,
+):
+    """
+    流式改写指定段落。
+
+    Yields:
+        str  — 每个文本 token
+    Raises:
+        ValueError: paragraph_index 越界
+    """
+    sections = script_content.get("sections", [])
+    if not sections or paragraph_index < 0 or paragraph_index >= len(sections):
+        raise ValueError(
+            f"paragraph_index {paragraph_index} out of range "
+            f"(sections count: {len(sections)})"
+        )
+
+    section = sections[paragraph_index]
+    original_content = section.get("content", "")
+    section_title = section.get("title", f"段落 {paragraph_index + 1}")
+
+    context = (
+        f"【视频标题】{script_content.get('title', '')}\n"
+        f"【当前段落】{section_title}\n"
+        f"【原文】\n{original_content}\n\n"
+        f"【改写指令】{instruction}"
+    )
+
+    stream = await client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": REWRITE_SYSTEM_PROMPT},
+            {"role": "user", "content": context},
+        ],
+        temperature=0.75,
+        max_tokens=1024,
+        stream=True,
+    )
+
+    async for chunk in stream:
+        delta = chunk.choices[0].delta
+        if delta.content:
+            yield delta.content
