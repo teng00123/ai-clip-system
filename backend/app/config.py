@@ -3,7 +3,7 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql+asyncpg://clipuser:clippass@localhost:5432/clipdb"
+    DATABASE_URL: str = "mysql+aiomysql://clipuser:clippass@localhost:3306/clipdb"
     REDIS_URL: str = "redis://localhost:6379/0"
     MINIO_ENDPOINT: str = "localhost:9000"
     MINIO_ACCESS_KEY: str = "minioadmin"
