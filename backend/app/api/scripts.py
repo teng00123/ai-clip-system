@@ -26,6 +26,7 @@ from app.models.script import Script
 from app.schemas.script import (
     ScriptUpdate,
     ScriptOut,
+    ScriptGenerateRequest,
     ParagraphRewriteRequest,
     ParagraphRewriteOut,
     ApplyRewriteRequest,
@@ -51,6 +52,7 @@ router = APIRouter(prefix="/scripts", tags=["scripts"])
 @router.post("/generate/{project_id}", response_model=ScriptOut)
 async def generate_script_for_project(
     project_id: str,
+    req: ScriptGenerateRequest = ScriptGenerateRequest(),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -59,7 +61,7 @@ async def generate_script_for_project(
     if not guide.completed:
         raise HTTPException(status_code=400, detail="Complete the guide session first")
 
-    content = await generate_script(guide.brief)
+    content = await generate_script(guide.brief, fmt=req.format)
 
     await db.execute(
         update(Script).where(Script.project_id == project_id).values(is_latest=False)
@@ -75,7 +77,7 @@ async def generate_script_for_project(
         id=str(uuid.uuid4()),
         project_id=project_id,
         version=version,
-        format="voiceover",
+        format=req.format,
         content=content,
         is_latest=True,
     )
@@ -89,25 +91,18 @@ async def generate_script_for_project(
     return ScriptOut.model_validate(script)
 
 
-# ── SSE: 流式生成剧本 ─────────────────────────────────────────────────────────
-
 @router.post("/generate/{project_id}/stream")
 async def generate_script_stream_endpoint(
     project_id: str,
+    req: ScriptGenerateRequest = ScriptGenerateRequest(),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     """
     流式生成剧本 (SSE)。
 
-    协议：
-    - 每行格式：`data: <token>\n\n`
-    - token 为 JSON 字符串的逐字符/词片段
-    - 最终行：`data: [DONE]\n\n`（前端据此解析完整 JSON 并保存）
-    - 错误行：`event: error\ndata: <message>\n\n`
-
-    前端须将所有 token 拼接 → 在 [DONE] 收到后调用
-    `POST /api/scripts/generate/{project_id}/save` 将完整 JSON 存库。
+    支持 format: 'voiceover'(口播) | 'storyboard'(分镜)
+    该层只负责 streaming，保存请调用 /generate/{project_id}/save
     """
     await get_project_for_user(project_id, db, user)
     guide = await get_guide_session_for_project(project_id, db, user)
@@ -115,11 +110,11 @@ async def generate_script_stream_endpoint(
         raise HTTPException(status_code=400, detail="Complete the guide session first")
 
     brief = guide.brief
+    fmt = req.format
 
     async def event_generator():
         try:
-            async for token in generate_script_stream(brief):
-                # SSE format: escape newlines inside token
+            async for token in generate_script_stream(brief, fmt=fmt):
                 safe = token.replace("\n", "\\n")
                 yield f"data: {safe}\n\n"
             yield "data: [DONE]\n\n"
@@ -131,7 +126,7 @@ async def generate_script_stream_endpoint(
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # disable Nginx buffering
+            "X-Accel-Buffering": "no",
         },
     )
 
@@ -145,14 +140,16 @@ async def save_streamed_script(
 ):
     """
     将 SSE 流式生成结束后前端拼接的完整 JSON 保存到 DB。
-    payload: { "content": { ...script JSON... } }
+    payload: { "content": { ...script JSON... }, "format": "voiceover" | "storyboard" }
     """
     await get_project_for_user(project_id, db, user)
     content = payload.get("content")
     if not content or not isinstance(content, dict):
         raise HTTPException(status_code=400, detail="content must be a JSON object")
+    fmt = payload.get("format", "voiceover")
+    if fmt not in ("voiceover", "storyboard"):
+        fmt = "voiceover"
 
-    # 确认 guide 已完成（防止跳过流程直接调 save）
     guide = await get_guide_session_for_project(project_id, db, user)
     if not guide.completed:
         raise HTTPException(status_code=400, detail="Complete the guide session first")
@@ -170,7 +167,7 @@ async def save_streamed_script(
         id=str(uuid.uuid4()),
         project_id=project_id,
         version=version,
-        format="voiceover",
+        format=fmt,
         content=content,
         is_latest=True,
     )
@@ -182,7 +179,6 @@ async def save_streamed_script(
 
     await db.flush()
     return ScriptOut.model_validate(script)
-
 
 @router.get("/{project_id}", response_model=List[ScriptOut])
 async def list_scripts(

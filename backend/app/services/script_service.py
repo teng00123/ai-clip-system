@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Literal
 from openai import AsyncOpenAI
 from app.config import settings
 
@@ -7,32 +7,69 @@ client = AsyncOpenAI(
     base_url=settings.OPENAI_BASE_URL,
 )
 
+# 支持的剧本格式
+ScriptFormat = Literal["voiceover", "storyboard"]
+
 SYSTEM_PROMPT = """You are a professional short video scriptwriter specializing in Douyin (TikTok) content.
 Generate compelling voiceover scripts in Chinese based on the creator brief provided.
 Return a valid JSON object with this structure:
 {
-  "title": "video title",
-  "hook": "opening hook (first 3 seconds, must grab attention)",
+  "title": "视频标题",
+  "hook": "开局鑂子（前3秒，必须抓住注意力）",
   "sections": [
-    {"id": 1, "title": "section name", "content": "voiceover text", "duration_estimate": "X seconds"}
+    {"id": 1, "title": "段落名称", "content": "口播文案", "duration_estimate": "X seconds"}
   ],
-  "cta": "call-to-action ending",
+  "cta": "结尾引导行动",
   "total_duration_estimate": "X seconds",
-  "notes": "production notes for the creator"
+  "notes": "制作备注"
+}"""
+
+STORYBOARD_SYSTEM_PROMPT = """You are a professional short video director and scriptwriter specializing in Douyin (TikTok) content.
+Generate a detailed storyboard script in Chinese based on the creator brief provided.
+Return a valid JSON object with this structure:
+{
+  "title": "视频标题",
+  "hook": "开局鑂子描述（前3秒画面）",
+  "sections": [
+    {
+      "id": 1,
+      "title": "分镜标题",
+      "shot_type": "景别类型，如：特写/近景/中景/全景/信息图/过渡",
+      "visual": "画面内容描述（场景、动作、构图）",
+      "voiceover": "同期口播文案",
+      "caption": "字幕/花字文案（可为空）",
+      "duration_estimate": "X seconds"
+    }
+  ],
+  "cta": "结尾引导行动",
+  "total_duration_estimate": "X seconds",
+  "notes": "拍摄和制作备注"
 }"""
 
 
-async def generate_script(brief: Dict[str, Any]) -> Dict:
-    user_prompt = f"""Please create a short video script based on this creator brief:
+def _build_brief_prompt(brief: Dict[str, Any]) -> str:
+    """Build common brief section used by both voiceover and storyboard prompts."""
+    return f"""Creator Brief:
 
 Topic Category: {brief.get('topic_category', 'N/A')}
 Content Direction: {brief.get('content_direction', 'N/A')}
 Target Audience: {brief.get('target_audience', 'N/A')}
 Video Style: {brief.get('video_style', 'N/A')}
 Target Duration: {brief.get('video_duration', 'N/A')}
+Tone: {brief.get('tone', 'N/A')}
 Reference Accounts: {brief.get('reference_accounts', 'None')}
 Special Requirements: {brief.get('special_requirements', 'None')}
+"""
 
+
+async def generate_script(brief: Dict[str, Any], fmt: ScriptFormat = "voiceover") -> Dict:
+    if fmt == "storyboard":
+        return await _generate_storyboard(brief)
+    return await _generate_voiceover(brief)
+
+
+async def _generate_voiceover(brief: Dict[str, Any]) -> Dict:
+    user_prompt = _build_brief_prompt(brief) + """
 Requirements:
 1. Write the hook to immediately grab attention in the first 3 seconds
 2. Structure the main body in clear sections matching the target duration
@@ -44,6 +81,30 @@ Requirements:
         model=settings.OPENAI_MODEL,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.7,
+        response_format={"type": "json_object"},
+    )
+
+    import json
+    content = response.choices[0].message.content
+    return json.loads(content)
+
+
+async def _generate_storyboard(brief: Dict[str, Any]) -> Dict:
+    user_prompt = _build_brief_prompt(brief) + """
+Requirements:
+1. Write an eye-catching visual hook for the first 3 seconds
+2. Break down each scene with shot type, visual description, and matching voiceover
+3. Include appropriate captions/text overlays for key moments
+4. End with a compelling CTA
+5. Return only valid JSON, no markdown fences"""
+
+    response = await client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": STORYBOARD_SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
         ],
         temperature=0.7,
@@ -153,36 +214,38 @@ def apply_rewrite(script_content: Dict, paragraph_index: int, rewritten_text: st
 
 # ── SSE 流式生成 ─────────────────────────────────────────────────────────────
 
-async def generate_script_stream(brief: Dict[str, Any]):
+async def generate_script_stream(brief: Dict[str, Any], fmt: ScriptFormat = "voiceover"):
     """
     流式生成剧本，逐 token yield 字符串。
-    调用方负责将 token 拼接并在末尾解析 JSON。
-
-    Yields:
-        str  — 每个文本 token（data chunk）
-        最后 yield "data: [DONE]\\n\\n" 表示结束
+    fmt: 'voiceover'(口播) 或 'storyboard'(分镜)
     """
-    user_prompt = f"""Please create a short video script based on this creator brief:
+    if fmt == "storyboard":
+        system = STORYBOARD_SYSTEM_PROMPT
+        extra = (
+            "\nRequirements:\n"
+            "1. Write an eye-catching visual hook for the first 3 seconds\n"
+            "2. Break down each scene with shot type, visual description, and matching voiceover\n"
+            "3. Include appropriate captions/text overlays for key moments\n"
+            "4. End with a compelling CTA\n"
+            "5. Return only valid JSON, no markdown fences"
+        )
+    else:
+        system = SYSTEM_PROMPT
+        extra = (
+            "\nRequirements:\n"
+            "1. Write the hook to immediately grab attention in the first 3 seconds\n"
+            "2. Structure the main body in clear sections matching the target duration\n"
+            "3. End with a strong CTA that encourages likes, follows, or comments\n"
+            "4. Write in a natural, conversational Chinese tone suitable for voiceover\n"
+            "5. Return only valid JSON, no markdown fences"
+        )
 
-Topic Category: {brief.get('topic_category', 'N/A')}
-Content Direction: {brief.get('content_direction', 'N/A')}
-Target Audience: {brief.get('target_audience', 'N/A')}
-Video Style: {brief.get('video_style', 'N/A')}
-Target Duration: {brief.get('video_duration', 'N/A')}
-Reference Accounts: {brief.get('reference_accounts', 'None')}
-Special Requirements: {brief.get('special_requirements', 'None')}
-
-Requirements:
-1. Write the hook to immediately grab attention in the first 3 seconds
-2. Structure the main body in clear sections matching the target duration
-3. End with a strong CTA that encourages likes, follows, or comments
-4. Write in a natural, conversational Chinese tone suitable for voiceover
-5. Return only valid JSON, no markdown fences"""
+    user_prompt = _build_brief_prompt(brief) + extra
 
     stream = await client.chat.completions.create(
         model=settings.OPENAI_MODEL,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system},
             {"role": "user", "content": user_prompt},
         ],
         temperature=0.7,

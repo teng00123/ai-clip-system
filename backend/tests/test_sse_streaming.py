@@ -139,7 +139,7 @@ def test_generate_stream_sse_format(client):
     _complete_guide(client, headers, pid)
 
     tokens = ["{\"title\":", " \"测试\"", "}"]
-    async def _gen(brief):
+    async def _gen(brief, fmt="voiceover"):
         for t in tokens:
             yield t
 
@@ -168,7 +168,7 @@ def test_generate_stream_tokens_in_order(client):
 
     tokens = ["part1", "part2", "part3"]
 
-    async def _gen(brief):
+    async def _gen(brief, fmt="voiceover"):
         for t in tokens:
             yield t
 
@@ -187,7 +187,7 @@ def test_generate_stream_ends_with_done(client):
     pid = _create_project(client, headers)
     _complete_guide(client, headers, pid)
 
-    async def _gen(brief):
+    async def _gen(brief, fmt="voiceover"):
         yield SCRIPT_JSON_STR
 
     with patch("app.api.scripts.generate_script_stream", side_effect=_gen):
@@ -205,7 +205,7 @@ def test_generate_stream_llm_error_sends_error_event(client):
     pid = _create_project(client, headers)
     _complete_guide(client, headers, pid)
 
-    async def _gen_err(brief):
+    async def _gen_err(brief, fmt="voiceover"):
         raise RuntimeError("OpenAI timeout")
         yield  # make it an async generator
 

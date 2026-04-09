@@ -1,16 +1,27 @@
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Literal
 from pydantic import BaseModel, Field
+
+# 支持的剧本格式
+ScriptFormat = Literal["voiceover", "storyboard"]
+
+
+class ScriptGenerateRequest(BaseModel):
+    format: ScriptFormat = Field("voiceover", description="生成格式：voiceover=口播文案, storyboard=分镜脚本")
 
 
 class ScriptCreate(BaseModel):
     project_id: str
-    format: str = "voiceover"
+    format: ScriptFormat = "voiceover"
     content: Dict
 
 
 class ScriptUpdate(BaseModel):
     content: Dict
+
+
+class ScriptFormatUpdate(BaseModel):
+    format: ScriptFormat = Field(..., description="切换格式")
 
 
 class ScriptOut(BaseModel):

@@ -18,8 +18,8 @@ export const rewriteSection = (scriptId: string, sectionContent: string, instruc
   client.post(`/scripts/${scriptId}/rewrite-section`, { section_content: sectionContent, instruction })
 
 /** 将 SSE 流式生成结束后前端拼接的完整 JSON 保存到 DB */
-export const saveStreamedScript = (projectId: string, content: object) =>
-  client.post<Script>(`/scripts/generate/${projectId}/save`, { content })
+export const saveStreamedScript = (projectId: string, content: object, format: 'voiceover' | 'storyboard' = 'voiceover') =>
+  client.post<Script>(`/scripts/generate/${projectId}/save`, { content, format })
 
 /** SSE 流式生成剧本，返回 EventSource URL + token 头，供 fetch streaming 使用 */
 export const getGenerateStreamUrl = (projectId: string) =>
