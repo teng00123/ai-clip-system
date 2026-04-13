@@ -65,7 +65,6 @@
           </div>
         </div>
       </div>
-    </main>
 
     <!-- Create modal -->
     <Transition name="fade">

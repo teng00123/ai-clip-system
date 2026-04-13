@@ -9,8 +9,8 @@ from app.models.types import JsonType
 class Script(Base):
     __tablename__ = "scripts"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id"), nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1)
     format: Mapped[str] = mapped_column(String(50), default="voiceover")
     content: Mapped[dict] = mapped_column(JsonType, nullable=False)

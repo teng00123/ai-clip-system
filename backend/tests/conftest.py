@@ -30,7 +30,7 @@ from app.models.project import Project
 from app.models.script import Script
 from app.models.user import User
 from app.models.video import Video
-from app.utils.jwt_utils import create_access_token
+from app.utils.jwt_utils import create_access_token, hash_password
 
 # ── shared async engine (single in-memory db across all fixtures) ─────────────
 async_engine = create_async_engine(
@@ -76,7 +76,7 @@ def user_factory(db):
 
     async def _make(email: str, nickname: str | None = None) -> User:
         counter[0] += 1
-        user = User(id=f"u{counter[0]}", email=email, password_hash="hashed-pw", nickname=nickname)
+        user = User(id=f"u{counter[0]}", email=email, password_hash=hash_password("test-password"), nickname=nickname)
         db.add(user)
         await db.flush()
         return user
