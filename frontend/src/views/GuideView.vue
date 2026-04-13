@@ -115,7 +115,7 @@
                 class="answer-textarea"
                 @keydown.ctrl.enter="submitIfReady"
               ></textarea>
-              <p class="input-hint">Ctrl + Enter 提交</p>
+              <p class="input-hint">Ctrl + Enter {{ t('guide.submit') }}</p>
             </div>
 
             <p v-if="errMsg" class="err-msg">{{ errMsg }}</p>
@@ -213,7 +213,7 @@
           <div v-else class="dynamic-text-input">
             <textarea
               v-model="answer"
-              placeholder="输入你的回答… (Ctrl+Enter 发送)"
+              :placeholder="t('guide.answerPlaceholder') + ' (Ctrl+Enter)'"
               rows="3"
               class="answer-textarea"
               @keydown.ctrl.enter="submitDynamic"
@@ -288,16 +288,16 @@ const canSubmit = computed(() => {
   return answer.value.trim().length > 0
 })
 const inputPlaceholder = computed(() => {
-  if (!question.value) return '请输入你的回答…'
+  if (!question.value) return t('guide.answerPlaceholder')
   const s = question.value.step
   const hints: Record<number, string> = {
-    1: '例如：宠物博主、美食探店、职场干货…',
-    2: '例如：18~35岁上班族，喜欢健康生活…',
-    3: '例如：让更多人了解我的手工皂品牌',
-    5: '例如：轻松幽默、真诚分享、干货满满…',
-    7: '例如：欢迎点赞关注，评论你的想法！',
+    1: t('guide.hints.step1', '例如：宠物博主、美食探店、职场干货…'),
+    2: t('guide.hints.step2', '例如：18~35岁上班族，喜欢健康生活…'),
+    3: t('guide.hints.step3', '例如：让更多人了解我的手工皂品牌'),
+    5: t('guide.hints.step5', '例如：轻松幽默、真诚分享、干货满满…'),
+    7: t('guide.hints.step7', '例如：欢迎点赞关注，评论你的想法！'),
   }
-  return hints[s] || '请输入你的回答…'
+  return hints[s] || t('guide.answerPlaceholder')
 })
 
 // ── Dynamic mode state ────────────────────────────────────────────────────────
@@ -521,20 +521,8 @@ function goToScript() {
   router.push(`/project/${projectId}/script`)
 }
 
-const briefKeyMap: Record<string, string> = {
-  content_type: '内容类型',
-  target_audience: '目标受众',
-  core_goal: '核心目标',
-  key_message: '核心信息',
-  tone_style: '风格调性',
-  product_name: '产品/品牌',
-  cta: '行动号召',
-  extra_notes: '补充说明',
-  tone: '语气风格',
-  duration_target: '目标时长',
-}
 function briefKeyLabel(k: string) {
-  return briefKeyMap[k] || k
+  return t(`guide.briefKeys.${k}`, k)
 }
 </script>
 
