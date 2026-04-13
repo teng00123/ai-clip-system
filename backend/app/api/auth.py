@@ -23,6 +23,7 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
     )
     db.add(user)
     await db.flush()
+    await db.refresh(user)  # 刷新以加载 created_at
     token = create_access_token(user.id, user.email)
     return TokenOut(access_token=token, user=UserOut.model_validate(user))
 
