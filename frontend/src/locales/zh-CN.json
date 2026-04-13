@@ -75,6 +75,7 @@
       "completed": "已完成"
     },
     "deleteConfirm": "确定要删除项目 \"{name}\" 吗？此操作不可恢复。",
+    "deleteWarn": "此操作不可撤销，相关视频文件和剪辑结果将一并删除。",
     "deleting": "删除中…",
     "empty": "还没有项目",
     "emptyHint": "创建你的第一个 AI 剪辑项目，开始创作之旅",

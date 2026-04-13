@@ -3,25 +3,25 @@
       <!-- Header -->
       <div class="page-header">
         <div>
-          <h1>我的项目</h1>
-          <p class="page-subtitle">{{ projects.length }} 个项目</p>
+          <h1>{{ t('project.title') }}</h1>
+          <p class="page-subtitle">{{ t('project.count', { count: projects.length }) }}</p>
         </div>
         <button class="btn btn-primary" @click="openCreateModal">
-          <span>＋</span> 新建项目
+          <span>＋</span> {{ t('project.createNew') }}
         </button>
       </div>
 
       <!-- Loading -->
       <div v-if="projectStore.loading" class="center-container">
-        <LoadingSpinner size="lg" label="加载中…" />
+        <LoadingSpinner size="lg" :label="t('common.loading')" />
       </div>
 
       <!-- Empty state -->
       <div v-else-if="projects.length === 0" class="empty-state">
         <div class="empty-icon">🎬</div>
-        <p>还没有项目</p>
-        <small>创建你的第一个 AI 剪辑项目，开始创作之旅</small>
-        <button class="btn btn-primary mt-4" @click="openCreateModal">创建项目</button>
+        <p>{{ t('project.empty') }}</p>
+        <small>{{ t('project.emptyHint') }}</small>
+        <button class="btn btn-primary mt-4" @click="openCreateModal">{{ t('project.create') }}</button>
       </div>
 
       <!-- Project grid -->
@@ -44,7 +44,7 @@
           <!-- Card body -->
           <div class="project-card-body">
             <h3 class="project-name">{{ p.name }}</h3>
-            <p class="project-desc">{{ p.description || '暂无描述' }}</p>
+            <p class="project-desc">{{ p.description || t('project.noDescription') }}</p>
           </div>
 
           <!-- Card footer -->
@@ -53,14 +53,14 @@
             <div class="card-actions" @click.stop>
               <button
                 class="btn btn-ghost btn-sm"
-                title="继续编辑"
+                :title="t('project.continue')"
                 @click="openProject(p.id)"
-              >编辑</button>
+              >{{ t('common.edit') }}</button>
               <button
                 class="btn btn-danger btn-sm"
-                title="删除项目"
+                :title="t('common.delete')"
                 @click="confirmDelete(p)"
-              >删除</button>
+              >{{ t('common.delete') }}</button>
             </div>
           </div>
         </div>
@@ -71,19 +71,19 @@
       <div v-if="showCreate" class="modal-overlay" @click.self="showCreate = false">
         <div class="modal" @keyup.esc="showCreate = false">
           <div class="modal-header">
-            <h2 class="modal-title">新建项目</h2>
+            <h2 class="modal-title">{{ t('project.createNew') }}</h2>
             <button class="modal-close" @click="showCreate = false">✕</button>
           </div>
 
           <form @submit.prevent="createProject">
             <div class="form-field">
-              <label class="form-label" for="create-name">项目名称 <span class="required">*</span></label>
+              <label class="form-label" for="create-name">{{ t('project.name') }} <span class="required">{{ t('auth.required') }}</span></label>
               <input
                 id="create-name"
                 v-model="newName"
                 type="text"
                 class="input"
-                placeholder="例如：产品发布会宣传片"
+                :placeholder="t('project.namePlaceholder')"
                 maxlength="60"
                 autofocus
                 required
@@ -92,26 +92,26 @@
             </div>
 
             <div class="form-field mt-4">
-              <label class="form-label" for="create-desc">项目描述</label>
+              <label class="form-label" for="create-desc">{{ t('project.description') }}</label>
               <textarea
                 id="create-desc"
                 v-model="newDesc"
                 class="input"
-                placeholder="简单描述这个视频的用途…（可选）"
+                :placeholder="t('project.descPlaceholder')"
                 rows="3"
                 maxlength="200"
               />
             </div>
 
             <div class="modal-footer">
-              <button type="button" class="btn btn-ghost" @click="showCreate = false">取消</button>
+              <button type="button" class="btn btn-ghost" @click="showCreate = false">{{ t('common.cancel') }}</button>
               <button
                 type="submit"
                 class="btn btn-primary"
                 :disabled="!newName.trim() || creating"
               >
                 <span v-if="creating" class="btn-spinner" />
-                {{ creating ? '创建中…' : '创建并开始' }}
+                {{ creating ? t('project.creating') : t('project.create') }}
               </button>
             </div>
           </form>
@@ -124,17 +124,17 @@
       <div v-if="deleteTarget" class="modal-overlay" @click.self="deleteTarget = null">
         <div class="modal modal-sm">
           <div class="modal-header">
-            <h2 class="modal-title danger-title">删除项目</h2>
+            <h2 class="modal-title danger-title">{{ t('common.delete') }}</h2>
             <button class="modal-close" @click="deleteTarget = null">✕</button>
           </div>
 
           <p class="delete-confirm-text">
-            确定要删除项目 <strong>「{{ deleteTarget.name }}」</strong> 吗？
+            {{ t('project.deleteConfirm', { name: deleteTarget.name }) }}
           </p>
-          <p class="delete-warn">此操作不可撤销，相关视频文件和剪辑结果将一并删除。</p>
+          <p class="delete-warn">{{ t('project.deleteWarn') }}</p>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-ghost" @click="deleteTarget = null">取消</button>
+            <button type="button" class="btn btn-ghost" @click="deleteTarget = null">{{ t('common.cancel') }}</button>
             <button
               type="button"
               class="btn btn-danger"
@@ -142,7 +142,7 @@
               @click="doDelete"
             >
               <span v-if="deleting" class="btn-spinner btn-spinner-red" />
-              {{ deleting ? '删除中…' : '确认删除' }}
+              {{ deleting ? t('project.deleting') : t('common.confirm') }}
             </button>
           </div>
         </div>
@@ -154,11 +154,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '@/stores/project'
 import type { Project } from '@/types'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const projectStore = useProjectStore()
 
 const showCreate = ref(false)
@@ -215,13 +217,7 @@ async function doDelete() {
   }
 }
 
-const statusMap: Record<string, string> = {
-  draft: '草稿',
-  scripting: '编写剧本',
-  clipping: '剪辑中',
-  done: '已完成',
-}
-function statusLabel(s: string) { return statusMap[s] || s }
+function statusLabel(s: string) { return t(`project.status.${s}`, s) }
 
 const emojiMap: Record<string, string> = {
   draft: '📝',
