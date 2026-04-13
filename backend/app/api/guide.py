@@ -80,16 +80,10 @@ async def get_session(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """获取当前会话（不创建），不存在返回 404"""
+    """获取当前会话，不存在时自动创建（兜底容错）"""
     await get_project_for_user(project_id, db, user)
-    from sqlalchemy import select as sa_select
-    from app.models.guide_session import GuideSession
-    result = await db.execute(
-        sa_select(GuideSession).where(GuideSession.project_id == project_id)
-    )
-    session = result.scalars().first()
-    if not session:
-        raise HTTPException(status_code=404, detail="No guide session found")
+    session = await _get_or_create_session(project_id, db)
+    await db.refresh(session)  # 确保加载所有字段
     return GuideSessionOut.model_validate(session)
 
 
