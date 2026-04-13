@@ -27,19 +27,35 @@
     "nickname": "昵称",
     "loginTitle": "欢迎回来",
     "registerTitle": "创建账号",
+    "registerSubtitle": "免费开始你的 AI 剪辑之旅",
     "noAccount": "还没有账号?",
     "hasAccount": "已有账号?",
     "goRegister": "立即注册",
     "goLogin": "立即登录",
     "emailPlaceholder": "请输入邮箱",
     "passwordPlaceholder": "请输入密码",
-    "nicknamePlaceholder": "请输入昵称(选填)",
+    "nicknamePlaceholder": "如何称呼你？",
+    "nicknameOptional": "（可选）",
     "show": "显示",
     "hide": "隐藏",
     "emailRequired": "请输入邮箱地址",
     "emailInvalid": "请输入有效的邮箱地址",
     "passwordRequired": "请输入密码",
-    "loginFailed": "登录失败,请检查账号密码"
+    "passwordMin": "至少 8 位",
+    "confirmPassword": "确认密码",
+    "confirmPasswordPlaceholder": "再次输入密码",
+    "confirmPasswordMismatch": "两次密码不一致",
+    "required": "*",
+    "fillInfo": "填写信息",
+    "passwordStrength": {
+      "weak": "弱",
+      "fair": "一般",
+      "good": "良好",
+      "strong": "强"
+    },
+    "loginFailed": "登录失败，请检查账号密码",
+    "registerFailed": "注册失败",
+    "registering": "注册中…"
   },
   "project": {
     "title": "我的项目",
@@ -55,7 +71,7 @@
       "clipping": "剪辑中",
       "completed": "已完成"
     },
-    "deleteConfirm": "确定要删除项目 \"{name}\" 吗？此操作不可恢复。",
+    "deleteConfirm": "确定要删除项目 \"{name}\" 吗?此操作不可恢复。",
     "empty": "还没有项目,点击右上角创建第一个项目"
   },
   "guide": {
