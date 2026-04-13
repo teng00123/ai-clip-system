@@ -2,9 +2,9 @@
   <div class="export-page">
     <!-- Header -->
     <div class="export-header">
-      <button class="btn-back" @click="router.push(`/project/${projectId}/clip/${jobId}`)">← 剪辑</button>
-      <span class="page-title">导出成品</span>
-      <button class="btn-ghost" @click="router.push('/dashboard')">回到项目列表</button>
+      <button class="btn-back" @click="router.push(`/project/${projectId}/clip/${jobId}`)">← {{ t('nav.step4') }}</button>
+      <span class="page-title">{{ t('nav.step5') }}</span>
+      <button class="btn-ghost" @click="router.push('/dashboard')">{{ t('export.backToList') }}</button>
     </div>
 
     <div class="export-body">
@@ -15,20 +15,20 @@
         <!-- loading -->
         <div v-if="loading" class="splash">
           <div class="spinner"></div>
-          <p class="splash-hint">加载中…</p>
+          <p class="splash-hint">{{ t('common.loading') }}</p>
         </div>
 
         <!-- job not found / wrong state -->
         <div v-else-if="!job" class="splash">
           <div class="splash-icon">🔍</div>
-          <p class="splash-hint">找不到剪辑任务，请返回重试。</p>
-          <button class="btn-primary" @click="router.push(`/project/${projectId}/clip`)">返回剪辑页</button>
+          <p class="splash-hint">{{ t('export.notFound') }}</p>
+          <button class="btn-primary" @click="router.push(`/project/${projectId}/clip`)">{{ t('export.backToClip') }}</button>
         </div>
 
         <div v-else-if="job.status !== 'done'" class="splash">
           <div class="splash-icon">⏳</div>
-          <p class="splash-hint">剪辑尚未完成（当前状态：{{ statusLabel(job.status) }}）</p>
-          <button class="btn-primary" @click="router.push(`/project/${projectId}/clip/${jobId}`)">返回查看进度</button>
+          <p class="splash-hint">{{ t('export.notCompleted', { status: statusLabel(job.status) }) }}</p>
+          <button class="btn-primary" @click="router.push(`/project/${projectId}/clip/${jobId}`)">{{ t('export.backToProgress') }}</button>
         </div>
 
         <!-- main export UI -->
@@ -38,26 +38,26 @@
           <div class="success-banner">
             <span class="banner-icon">🎬</span>
             <div class="banner-text">
-              <p class="banner-title">成品已就绪！</p>
-              <p class="banner-sub">共 {{ job.clip_plan?.total_scenes ?? 0 }} 个片段，可一键下载或分享。</p>
+              <p class="banner-title">{{ t('export.ready') }}</p>
+              <p class="banner-sub">{{ t('export.readyDesc', { count: job.clip_plan?.total_scenes ?? 0 }) }}</p>
             </div>
           </div>
 
           <!-- 下载区 -->
           <div class="card download-card">
-            <div class="card-title">📥 下载成品视频</div>
+            <div class="card-title">📥 {{ t('export.downloadTitle') }}</div>
 
             <div class="download-meta">
               <div class="meta-item">
-                <span class="meta-k">片段数</span>
+                <span class="meta-k">{{ t('export.segments') }}</span>
                 <span class="meta-v">{{ job.clip_plan?.total_scenes ?? '–' }}</span>
               </div>
               <div class="meta-item">
-                <span class="meta-k">任务 ID</span>
+                <span class="meta-k">{{ t('export.taskId') }}</span>
                 <span class="meta-v mono">{{ job.id.slice(0, 12) }}…</span>
               </div>
               <div class="meta-item">
-                <span class="meta-k">完成时间</span>
+                <span class="meta-k">{{ t('export.completedTime') }}</span>
                 <span class="meta-v">{{ fmtDate(job.updated_at) }}</span>
               </div>
             </div>
@@ -69,15 +69,15 @@
                 @click="handleDownload"
               >
                 <span v-if="downloading" class="mini-spin"></span>
-                <span v-else>⬇️ 下载视频</span>
+                <span v-else>⬇️ {{ t('clip.download') }}</span>
               </button>
               <button class="btn-copy" @click="handleCopyLink">
-                {{ copied ? '✓ 已复制' : '🔗 复制链接' }}
+                {{ copied ? '✓ ' + t('export.copied') : '🔗 ' + t('export.copyLink') }}
               </button>
             </div>
 
             <p v-if="downloadErr" class="err-msg">{{ downloadErr }}</p>
-            <p class="download-note">下载链接有效期 24 小时，过期后需重新获取。</p>
+            <p class="download-note">{{ t('export.linkExpiry') }}</p>
           </div>
 
           <!-- 片段列表 -->
@@ -171,11 +171,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { ClipJob } from '@/types'
 import * as clipApi from '@/api/clips'
 
 const route  = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const projectId = route.params.projectId as string
 const jobId     = route.params.jobId as string

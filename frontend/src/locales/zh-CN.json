@@ -117,12 +117,24 @@
   "video": {
     "title": "上传视频",
     "upload": "上传视频文件",
-    "dragHint": "拖拽视频文件到此处,或点击选择文件",
+    "dragHint": "拖拽视频文件到这里",
+    "clickHint": "或点击选择文件",
+    "formats": "支持 MP4 · MOV · AVI | 最大 500 MB",
     "uploading": "上传中...",
     "processing": "处理中...",
     "transcoding": "转码中...",
     "completed": "上传完成",
-    "failed": "上传失败"
+    "uploadComplete": "上传完成",
+    "failed": "上传失败",
+    "duration": "时长",
+    "changeFile": "换一个",
+    "uploadedList": "已上传的视频",
+    "startClip": "开始剪辑",
+    "requirements": "上传要求",
+    "reqFormat": "格式：MP4、MOV、AVI",
+    "reqSize": "大小：最大 500 MB",
+    "reqRatio": "建议横屏 16:9 或竖屏 9:16",
+    "reqResolution": "分辨率 1080p 以上效果最佳"
   },
   "clip": {
     "title": "AI 剪辑",
@@ -138,5 +150,22 @@
     "split": "分割",
     "trim": "裁剪",
     "delete": "删除片段"
+  },
+  "export": {
+    "title": "导出成品",
+    "backToList": "回到项目列表",
+    "backToClip": "返回剪辑页",
+    "backToProgress": "返回查看进度",
+    "notFound": "找不到剪辑任务，请返回重试。",
+    "notCompleted": "剪辑尚未完成（当前状态：{status}）",
+    "ready": "成品已就绪！",
+    "readyDesc": "共 {count} 个片段，可一键下载或分享。",
+    "downloadTitle": "下载成品视频",
+    "segments": "片段数",
+    "taskId": "任务 ID",
+    "completedTime": "完成时间",
+    "copied": "已复制",
+    "copyLink": "复制链接",
+    "linkExpiry": "下载链接有效期 24 小时，过期后需重新获取。"
   }
 }

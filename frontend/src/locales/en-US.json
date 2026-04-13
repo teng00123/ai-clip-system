@@ -117,12 +117,24 @@
   "video": {
     "title": "Upload Videos",
     "upload": "Upload Video File",
-    "dragHint": "Drag video files here or click to select",
+    "dragHint": "Drag video files here",
+    "clickHint": "or click to select",
+    "formats": "Supports MP4 · MOV · AVI | Max 500 MB",
     "uploading": "Uploading...",
     "processing": "Processing...",
     "transcoding": "Transcoding...",
     "completed": "Upload Complete",
-    "failed": "Upload Failed"
+    "uploadComplete": "Upload Complete",
+    "failed": "Upload Failed",
+    "duration": "Duration",
+    "changeFile": "Change",
+    "uploadedList": "Uploaded Videos",
+    "startClip": "Start Clipping",
+    "requirements": "Upload Requirements",
+    "reqFormat": "Format: MP4, MOV, AVI",
+    "reqSize": "Size: Max 500 MB",
+    "reqRatio": "Recommended 16:9 landscape or 9:16 portrait",
+    "reqResolution": "Resolution 1080p or above for best quality"
   },
   "clip": {
     "title": "AI Clip",
@@ -138,5 +150,22 @@
     "split": "Split",
     "trim": "Trim",
     "delete": "Delete Clip"
+  },
+  "export": {
+    "title": "Export",
+    "backToList": "Back to Project List",
+    "backToClip": "Back to Clip",
+    "backToProgress": "Back to Progress",
+    "notFound": "Clip task not found, please go back and retry.",
+    "notCompleted": "Clipping not completed (current status: {status})",
+    "ready": "Ready!",
+    "readyDesc": "{count} segments in total, download or share with one click.",
+    "downloadTitle": "Download Final Video",
+    "segments": "Segments",
+    "taskId": "Task ID",
+    "completedTime": "Completed Time",
+    "copied": "Copied",
+    "copyLink": "Copy Link",
+    "linkExpiry": "Download link valid for 24 hours, re-fetch after expiration."
   }
 }
