@@ -8,16 +8,16 @@
     <div class="auth-card">
       <div class="auth-header">
         <div class="auth-logo">✂️</div>
-        <h1 class="auth-title">{{ t('auth.registerTitle') }}</h1>
-        <p class="auth-subtitle">{{ t('auth.registerSubtitle') }}</p>
+        <h1 class="auth-title">创建账号</h1>
+        <p class="auth-subtitle">免费开始你的 AI 剪辑之旅</p>
       </div>
 
-      <div class="auth-divider"><span>{{ t('auth.fillInfo') }}</span></div>
+      <div class="auth-divider"><span>填写信息</span></div>
 
       <form class="auth-form" @submit.prevent="handleRegister" novalidate>
         <!-- Email -->
         <div class="form-field">
-          <label class="form-label" for="email">{{ t('auth.email') }} <span class="required">{{ t('auth.required') }}</span></label>
+          <label class="form-label" for="email">邮箱地址 <span class="required">*</span></label>
           <input
             id="email"
             v-model="email"
@@ -35,15 +35,15 @@
         <!-- Nickname -->
         <div class="form-field">
           <label class="form-label" for="nickname">
-            {{ t('auth.nickname') }}
-            <span class="form-label-hint">{{ t('auth.nicknameOptional') }}</span>
+            昵称
+            <span class="form-label-hint">（可选）</span>
           </label>
           <input
             id="nickname"
             v-model="nickname"
             type="text"
             class="input"
-            :placeholder="t('auth.nicknamePlaceholder')"
+            placeholder="如何称呼你？"
             autocomplete="nickname"
             maxlength="30"
           />
@@ -51,7 +51,7 @@
 
         <!-- Password -->
         <div class="form-field">
-          <label class="form-label" for="password">{{ t('auth.password') }} <span class="required">{{ t('auth.required') }}</span></label>
+          <label class="form-label" for="password">密码 <span class="required">*</span></label>
           <div class="input-wrap">
             <input
               id="password"
@@ -59,13 +59,13 @@
               :type="showPassword ? 'text' : 'password'"
               class="input input-with-suffix"
               :class="{ 'input-error': errors.password }"
-              :placeholder="t('auth.passwordMin')"
+              placeholder="至少 8 位"
               autocomplete="new-password"
               @blur="validatePassword"
               @input="updateStrength"
             />
             <button type="button" class="input-suffix-btn" @click="showPassword = !showPassword" tabindex="-1">
-              {{ showPassword ? t('auth.hide') : t('auth.show') }}
+              {{ showPassword ? '隐藏' : '显示' }}
             </button>
           </div>
           <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
@@ -84,14 +84,14 @@
 
         <!-- Confirm password -->
         <div class="form-field">
-          <label class="form-label" for="confirm">{{ t('auth.confirmPassword') }} <span class="required">{{ t('auth.required') }}</span></label>
+          <label class="form-label" for="confirm">确认密码 <span class="required">*</span></label>
           <input
             id="confirm"
             v-model="confirmPassword"
             :type="showPassword ? 'text' : 'password'"
             class="input"
             :class="{ 'input-error': errors.confirm }"
-            :placeholder="t('auth.confirmPasswordPlaceholder')"
+            placeholder="再次输入密码"
             autocomplete="new-password"
             @blur="validateConfirm"
           />
@@ -107,7 +107,7 @@
 
         <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading">
           <span v-if="loading" class="btn-spinner" />
-          {{ loading ? t('auth.registering') : t('auth.register') }}
+          {{ loading ? '创建中…' : '创建账号' }}
         </button>
 
         <!-- Terms hint -->
@@ -120,8 +120,8 @@
       </form>
 
       <p class="auth-switch">
-        {{ t('auth.hasAccount') }}
-        <RouterLink to="/login" class="auth-switch-link">{{ t('auth.goLogin') }} →</RouterLink>
+        已有账号？
+        <RouterLink to="/login" class="auth-switch-link">去登录 →</RouterLink>
       </p>
     </div>
   </div>
@@ -130,11 +130,9 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
-const { t } = useI18n()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -149,9 +147,9 @@ const strength = reactive({ level: 0, label: '' })
 
 function validateEmail() {
   if (!email.value) {
-    errors.email = t('auth.emailRequired')
+    errors.email = '请输入邮箱地址'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    errors.email = t('auth.emailInvalid')
+    errors.email = '请输入有效的邮箱地址'
   } else {
     errors.email = ''
   }
@@ -159,9 +157,9 @@ function validateEmail() {
 
 function validatePassword() {
   if (!password.value) {
-    errors.password = t('auth.passwordRequired')
+    errors.password = '请输入密码'
   } else if (password.value.length < 8) {
-    errors.password = t('auth.passwordMin')
+    errors.password = '密码至少需要 8 位'
   } else {
     errors.password = ''
   }
@@ -169,9 +167,9 @@ function validatePassword() {
 
 function validateConfirm() {
   if (!confirmPassword.value) {
-    errors.confirm = t('auth.passwordRequired')
+    errors.confirm = '请确认密码'
   } else if (confirmPassword.value !== password.value) {
-    errors.confirm = t('auth.confirmPasswordMismatch')
+    errors.confirm = '两次输入的密码不一致'
   } else {
     errors.confirm = ''
   }
@@ -186,7 +184,7 @@ function updateStrength() {
   if (/\d/.test(p)) score++
   if (/[^A-Za-z0-9]/.test(p)) score++
 
-  const levels = ['', t('auth.passwordStrength.weak'), t('auth.passwordStrength.fair'), t('auth.passwordStrength.good'), t('auth.passwordStrength.strong')]
+  const levels = ['', '弱', '一般', '较强', '强']
   strength.level = Math.min(4, Math.max(1, score))
   strength.label = levels[strength.level]
 }
@@ -209,7 +207,7 @@ async function handleRegister() {
     } else if (Array.isArray(msg)) {
       serverError.value = msg.map((m: any) => m.msg).join('；')
     } else {
-      serverError.value = t('auth.registerFailed')
+      serverError.value = '注册失败，请稍后重试'
     }
   } finally {
     loading.value = false

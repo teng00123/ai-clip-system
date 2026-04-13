@@ -27,27 +27,46 @@
     "nickname": "Nickname",
     "loginTitle": "Welcome Back",
     "registerTitle": "Create Account",
+    "registerSubtitle": "Start your AI clipping journey for free",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "goRegister": "Register now",
     "goLogin": "Login now",
     "emailPlaceholder": "Enter your email",
     "passwordPlaceholder": "Enter your password",
-    "nicknamePlaceholder": "Enter nickname (optional)",
+    "nicknamePlaceholder": "How should we call you?",
+    "nicknameOptional": "(optional)",
     "show": "Show",
     "hide": "Hide",
     "emailRequired": "Please enter your email",
     "emailInvalid": "Please enter a valid email",
     "passwordRequired": "Please enter your password",
-    "loginFailed": "Login failed, please check your credentials"
+    "passwordMin": "At least 8 characters",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter password",
+    "confirmPasswordMismatch": "Passwords do not match",
+    "required": "*",
+    "fillInfo": "Fill in information",
+    "passwordStrength": {
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    },
+    "loginFailed": "Login failed, please check your credentials",
+    "registerFailed": "Registration failed",
+    "registering": "Registering..."
   },
   "project": {
     "title": "My Projects",
     "createNew": "New Project",
+    "create": "Create Project",
     "name": "Project Name",
     "description": "Description",
     "namePlaceholder": "Enter project name",
     "descPlaceholder": "Enter description (optional)",
+    "noDescription": "No description",
+    "count": "{count} projects",
     "status": {
       "draft": "Draft",
       "scripting": "Scripting",
@@ -56,7 +75,11 @@
       "completed": "Completed"
     },
     "deleteConfirm": "Are you sure you want to delete project \"{name}\"? This action cannot be undone.",
-    "empty": "No projects yet. Click the button above to create your first project."
+    "deleting": "Deleting...",
+    "empty": "No projects yet",
+    "emptyHint": "Create your first AI clipping project and start your creative journey",
+    "continue": "Continue editing",
+    "creating": "Creating..."
   },
   "guide": {
     "title": "Guide",
