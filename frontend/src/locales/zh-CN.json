@@ -33,13 +33,13 @@
     "goLogin": "立即登录",
     "emailPlaceholder": "请输入邮箱",
     "passwordPlaceholder": "请输入密码",
-    "nicknamePlaceholder": "请输入昵称（选填）",
+    "nicknamePlaceholder": "请输入昵称(选填)",
     "show": "显示",
     "hide": "隐藏",
     "emailRequired": "请输入邮箱地址",
     "emailInvalid": "请输入有效的邮箱地址",
     "passwordRequired": "请输入密码",
-    "loginFailed": "登录失败，请检查账号密码"
+    "loginFailed": "登录失败,请检查账号密码"
   },
   "project": {
     "title": "我的项目",
@@ -47,7 +47,7 @@
     "name": "项目名称",
     "description": "项目描述",
     "namePlaceholder": "请输入项目名称",
-    "descPlaceholder": "请输入项目描述（选填）",
+    "descPlaceholder": "请输入项目描述(选填)",
     "status": {
       "draft": "草稿",
       "scripting": "编写剧本",
@@ -55,8 +55,8 @@
       "clipping": "剪辑中",
       "completed": "已完成"
     },
-    "deleteConfirm": "确定要删除项目"{name}"吗？此操作不可恢复。",
-    "empty": "还没有项目，点击右上角创建第一个项目"
+    "deleteConfirm": "确定要删除项目 \"{name}\" 吗？此操作不可恢复。",
+    "empty": "还没有项目,点击右上角创建第一个项目"
   },
   "guide": {
     "title": "问答引导",
@@ -79,7 +79,7 @@
   "video": {
     "title": "上传视频",
     "upload": "上传视频文件",
-    "dragHint": "拖拽视频文件到此处，或点击选择文件",
+    "dragHint": "拖拽视频文件到此处,或点击选择文件",
     "uploading": "上传中...",
     "processing": "处理中...",
     "transcoding": "转码中...",
