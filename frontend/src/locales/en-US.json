@@ -60,10 +60,13 @@
   "project": {
     "title": "My Projects",
     "createNew": "New Project",
+    "create": "Create Project",
     "name": "Project Name",
     "description": "Description",
     "namePlaceholder": "Enter project name",
     "descPlaceholder": "Enter description (optional)",
+    "noDescription": "No description",
+    "count": "{count} projects",
     "status": {
       "draft": "Draft",
       "scripting": "Scripting",
@@ -72,7 +75,11 @@
       "completed": "Completed"
     },
     "deleteConfirm": "Are you sure you want to delete project \"{name}\"? This action cannot be undone.",
-    "empty": "No projects yet. Click the button above to create your first project."
+    "deleting": "Deleting...",
+    "empty": "No projects yet",
+    "emptyHint": "Create your first AI clipping project and start your creative journey",
+    "continue": "Continue editing",
+    "creating": "Creating..."
   },
   "guide": {
     "title": "Guide",

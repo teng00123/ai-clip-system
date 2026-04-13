@@ -34,8 +34,8 @@
     "goLogin": "立即登录",
     "emailPlaceholder": "请输入邮箱",
     "passwordPlaceholder": "请输入密码",
-    "nicknamePlaceholder": "如何称呼你？",
-    "nicknameOptional": "（可选）",
+    "nicknamePlaceholder": "如何称呼你?",
+    "nicknameOptional": "(可选)",
     "show": "显示",
     "hide": "隐藏",
     "emailRequired": "请输入邮箱地址",
@@ -53,17 +53,20 @@
       "good": "良好",
       "strong": "强"
     },
-    "loginFailed": "登录失败，请检查账号密码",
+    "loginFailed": "登录失败,请检查账号密码",
     "registerFailed": "注册失败",
-    "registering": "注册中…"
+    "registering": "注册中..."
   },
   "project": {
     "title": "我的项目",
     "createNew": "新建项目",
+    "create": "创建项目",
     "name": "项目名称",
     "description": "项目描述",
     "namePlaceholder": "请输入项目名称",
-    "descPlaceholder": "请输入项目描述(选填)",
+    "descPlaceholder": "请输入项目描述（选填）",
+    "noDescription": "暂无描述",
+    "count": "{count} 个项目",
     "status": {
       "draft": "草稿",
       "scripting": "编写剧本",
@@ -71,8 +74,12 @@
       "clipping": "剪辑中",
       "completed": "已完成"
     },
-    "deleteConfirm": "确定要删除项目 \"{name}\" 吗?此操作不可恢复。",
-    "empty": "还没有项目,点击右上角创建第一个项目"
+    "deleteConfirm": "确定要删除项目 \"{name}\" 吗？此操作不可恢复。",
+    "deleting": "删除中…",
+    "empty": "还没有项目",
+    "emptyHint": "创建你的第一个 AI 剪辑项目，开始创作之旅",
+    "continue": "继续编辑",
+    "creating": "创建中…"
   },
   "guide": {
     "title": "问答引导",
