@@ -75,6 +75,7 @@
       "completed": "Completed"
     },
     "deleteConfirm": "Are you sure you want to delete project \"{name}\"? This action cannot be undone.",
+    "deleteWarn": "This operation is irreversible. Related video files and clipping results will also be deleted.",
     "deleting": "Deleting...",
     "empty": "No projects yet",
     "emptyHint": "Create your first AI clipping project and start your creative journey",
@@ -82,13 +83,27 @@
     "creating": "Creating..."
   },
   "guide": {
-    "title": "Guide",
-    "static": "Static Mode",
-    "dynamic": "Dynamic Mode",
+    "title": "Creative Guide",
+    "back": "Back",
+    "static": "Classic Mode",
+    "staticDesc": "8 fixed questions, quick completion, suitable for first-time users.",
+    "dynamic": "AI Dynamic Mode",
+    "dynamicDesc": "AI asks follow-up questions based on your answers, 6~10 rounds, more precise understanding.",
+    "dynamicUnavailable": "Requires AI Key configuration",
+    "recommended": "Recommended",
+    "smart": "Smart",
+    "start": "Start Guide",
     "submit": "Submit Answer",
     "next": "Next Question",
-    "complete": "Complete",
-    "answerPlaceholder": "Enter your answer..."
+    "complete": "Complete Guide",
+    "completed": "Completed!",
+    "completedDesc": "We have generated a preliminary creative brief for you.",
+    "answerPlaceholder": "Please enter your answer...",
+    "loading": "Loading...",
+    "thinking": "AI thinking...",
+    "answeredCount": "Answered {count} questions",
+    "viewBrief": "View Brief",
+    "nextStep": "Next: Write Script"
   },
   "script": {
     "title": "Script Editor",
