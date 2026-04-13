@@ -4,13 +4,13 @@
       <!-- Logo -->
       <RouterLink to="/dashboard" class="navbar-logo">
         <span class="logo-icon">✂️</span>
-        <span class="logo-text">AI Clip</span>
+        <span class="logo-text">{{ t('common.appName') }}</span>
       </RouterLink>
 
       <!-- Project breadcrumb (shown when inside a project) -->
       <div v-if="currentProject" class="navbar-breadcrumb">
         <span class="breadcrumb-sep">›</span>
-        <RouterLink to="/dashboard" class="breadcrumb-link">项目</RouterLink>
+        <RouterLink to="/dashboard" class="breadcrumb-link">{{ t('common.projects') }}</RouterLink>
         <span class="breadcrumb-sep">›</span>
         <span class="breadcrumb-current">{{ currentProject.name }}</span>
       </div>
@@ -24,11 +24,16 @@
           :class="['step-link', { active: isActiveStep(step.path) }]"
         >
           <span class="step-num">{{ step.num }}</span>
-          {{ step.label }}
+          {{ step.label() }}
         </RouterLink>
       </div>
 
       <div class="navbar-right">
+        <!-- Language toggle -->
+        <button class="lang-toggle" @click="toggleLanguage">
+          {{ locale === 'zh-CN' ? 'EN' : '中' }}
+        </button>
+
         <!-- User menu -->
         <div class="user-menu" @click="menuOpen = !menuOpen" ref="menuRef">
           <div class="user-avatar">
@@ -44,7 +49,7 @@
               </div>
               <div class="dropdown-divider" />
               <button class="dropdown-item danger" @click="handleLogout">
-                退出登录
+                {{ t('common.logout') }}
               </button>
             </div>
           </Transition>
@@ -57,11 +62,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectStore } from '@/stores/project'
+import { setLocale } from '@/i18n'
 
 const route = useRoute()
 const router = useRouter()
+const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const projectStore = useProjectStore()
 
@@ -80,11 +88,11 @@ const userInitial = computed(() => {
 })
 
 const steps = [
-  { num: '1', label: '问答引导', path: 'guide' },
-  { num: '2', label: '剧本编辑', path: 'script' },
-  { num: '3', label: '上传视频', path: 'upload' },
-  { num: '4', label: 'AI 剪辑', path: 'clip' },
-  { num: '5', label: '导出', path: 'export' },
+  { num: '1', label: () => t('nav.step1'), path: 'guide' },
+  { num: '2', label: () => t('nav.step2'), path: 'script' },
+  { num: '3', label: () => t('nav.step3'), path: 'upload' },
+  { num: '4', label: () => t('nav.step4'), path: 'clip' },
+  { num: '5', label: () => t('nav.step5'), path: 'export' },
 ]
 
 function isActiveStep(path: string) {
@@ -94,6 +102,11 @@ function isActiveStep(path: string) {
 function handleLogout() {
   authStore.logout()
   router.push('/login')
+}
+
+function toggleLanguage() {
+  const newLocale = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN'
+  setLocale(newLocale as 'zh-CN' | 'en-US')
 }
 
 // Close dropdown on outside click
@@ -219,7 +232,35 @@ onMounted(async () => {
 }
 
 /* User menu */
-.navbar-right { margin-left: auto; flex-shrink: 0; }
+.navbar-right { 
+  margin-left: auto; 
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Language toggle */
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.lang-toggle:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
 
 .user-menu {
   position: relative;

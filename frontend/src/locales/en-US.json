@@ -1,0 +1,104 @@
+{
+  "common": {
+    "appName": "AI Clip",
+    "projects": "Projects",
+    "logout": "Logout",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "nav": {
+    "step1": "Guide",
+    "step2": "Script",
+    "step3": "Upload",
+    "step4": "Clip",
+    "step5": "Export"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "nickname": "Nickname",
+    "loginTitle": "Welcome Back",
+    "registerTitle": "Create Account",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "goRegister": "Register now",
+    "goLogin": "Login now",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password",
+    "nicknamePlaceholder": "Enter nickname (optional)",
+    "show": "Show",
+    "hide": "Hide",
+    "emailRequired": "Please enter your email",
+    "emailInvalid": "Please enter a valid email",
+    "passwordRequired": "Please enter your password",
+    "loginFailed": "Login failed, please check your credentials"
+  },
+  "project": {
+    "title": "My Projects",
+    "createNew": "New Project",
+    "name": "Project Name",
+    "description": "Description",
+    "namePlaceholder": "Enter project name",
+    "descPlaceholder": "Enter description (optional)",
+    "status": {
+      "draft": "Draft",
+      "scripting": "Scripting",
+      "uploading": "Uploading",
+      "clipping": "Clipping",
+      "completed": "Completed"
+    },
+    "deleteConfirm": "Are you sure you want to delete project \"{name}\"? This action cannot be undone.",
+    "empty": "No projects yet. Click the button above to create your first project."
+  },
+  "guide": {
+    "title": "Guide",
+    "static": "Static Mode",
+    "dynamic": "Dynamic Mode",
+    "submit": "Submit Answer",
+    "next": "Next Question",
+    "complete": "Complete",
+    "answerPlaceholder": "Enter your answer..."
+  },
+  "script": {
+    "title": "Script Editor",
+    "addScene": "Add Scene",
+    "scene": "Scene",
+    "narration": "Narration",
+    "narrationPlaceholder": "Enter narration content...",
+    "generateScript": "Generate Script (AI)",
+    "saveScript": "Save Script"
+  },
+  "video": {
+    "title": "Upload Videos",
+    "upload": "Upload Video File",
+    "dragHint": "Drag video files here or click to select",
+    "uploading": "Uploading...",
+    "processing": "Processing...",
+    "transcoding": "Transcoding...",
+    "completed": "Upload Complete",
+    "failed": "Upload Failed"
+  },
+  "clip": {
+    "title": "AI Clip",
+    "startClip": "Start Clipping",
+    "clipping": "Clipping...",
+    "completed": "Clip Complete",
+    "preview": "Preview",
+    "download": "Download"
+  },
+  "timeline": {
+    "title": "Timeline Editor",
+    "addClip": "Add Clip",
+    "split": "Split",
+    "trim": "Trim",
+    "delete": "Delete Clip"
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "common": {
+    "appName": "AI Clip",
+    "projects": "项目",
+    "logout": "退出登录",
+    "loading": "加载中...",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "confirm": "确认",
+    "back": "返回"
+  },
+  "nav": {
+    "step1": "问答引导",
+    "step2": "剧本编辑",
+    "step3": "上传视频",
+    "step4": "AI 剪辑",
+    "step5": "导出"
+  },
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "email": "邮箱",
+    "password": "密码",
+    "nickname": "昵称",
+    "loginTitle": "欢迎回来",
+    "registerTitle": "创建账号",
+    "noAccount": "还没有账号?",
+    "hasAccount": "已有账号?",
+    "goRegister": "立即注册",
+    "goLogin": "立即登录",
+    "emailPlaceholder": "请输入邮箱",
+    "passwordPlaceholder": "请输入密码",
+    "nicknamePlaceholder": "请输入昵称（选填）",
+    "show": "显示",
+    "hide": "隐藏",
+    "emailRequired": "请输入邮箱地址",
+    "emailInvalid": "请输入有效的邮箱地址",
+    "passwordRequired": "请输入密码",
+    "loginFailed": "登录失败，请检查账号密码"
+  },
+  "project": {
+    "title": "我的项目",
+    "createNew": "新建项目",
+    "name": "项目名称",
+    "description": "项目描述",
+    "namePlaceholder": "请输入项目名称",
+    "descPlaceholder": "请输入项目描述（选填）",
+    "status": {
+      "draft": "草稿",
+      "scripting": "编写剧本",
+      "uploading": "上传素材",
+      "clipping": "剪辑中",
+      "completed": "已完成"
+    },
+    "deleteConfirm": "确定要删除项目"{name}"吗？此操作不可恢复。",
+    "empty": "还没有项目，点击右上角创建第一个项目"
+  },
+  "guide": {
+    "title": "问答引导",
+    "static": "固定题库模式",
+    "dynamic": "智能问答模式",
+    "submit": "提交答案",
+    "next": "下一题",
+    "complete": "完成引导",
+    "answerPlaceholder": "请输入你的答案..."
+  },
+  "script": {
+    "title": "剧本编辑",
+    "addScene": "添加场景",
+    "scene": "场景",
+    "narration": "旁白",
+    "narrationPlaceholder": "请输入旁白内容...",
+    "generateScript": "AI 生成剧本",
+    "saveScript": "保存剧本"
+  },
+  "video": {
+    "title": "上传视频",
+    "upload": "上传视频文件",
+    "dragHint": "拖拽视频文件到此处，或点击选择文件",
+    "uploading": "上传中...",
+    "processing": "处理中...",
+    "transcoding": "转码中...",
+    "completed": "上传完成",
+    "failed": "上传失败"
+  },
+  "clip": {
+    "title": "AI 剪辑",
+    "startClip": "开始剪辑",
+    "clipping": "剪辑中...",
+    "completed": "剪辑完成",
+    "preview": "预览",
+    "download": "下载"
+  },
+  "timeline": {
+    "title": "时间轴编辑器",
+    "addClip": "添加片段",
+    "split": "分割",
+    "trim": "裁剪",
+    "delete": "删除片段"
+  }
+}
