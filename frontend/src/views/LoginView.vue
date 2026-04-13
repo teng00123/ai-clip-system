@@ -1,34 +1,31 @@
 <template>
   <div class="auth-page">
-    <!-- Background decoration -->
     <div class="auth-bg" aria-hidden="true">
       <div class="bg-orb orb-1" />
       <div class="bg-orb orb-2" />
     </div>
 
     <div class="auth-card">
-      <!-- Header -->
       <div class="auth-header">
         <div class="auth-logo">✂️</div>
-        <h1 class="auth-title">AI 短视频剪辑</h1>
-        <p class="auth-subtitle">用 AI 的力量，让剪辑更简单</p>
+        <h1 class="auth-title">{{ t('common.appName') }}</h1>
+        <p class="auth-subtitle">{{ t('auth.loginTitle') }}</p>
       </div>
 
       <div class="auth-divider">
-        <span>登录账号</span>
+        <span>{{ t('auth.login') }}</span>
       </div>
 
-      <!-- Form -->
       <form class="auth-form" @submit.prevent="handleLogin" novalidate>
         <div class="form-field">
-          <label class="form-label" for="email">邮箱地址</label>
+          <label class="form-label" for="email">{{ t('auth.email') }}</label>
           <input
             id="email"
             v-model="email"
             type="email"
             class="input"
             :class="{ 'input-error': errors.email }"
-            placeholder="your@email.com"
+            :placeholder="t('auth.emailPlaceholder')"
             autocomplete="email"
             autofocus
             @blur="validateEmail"
@@ -38,8 +35,7 @@
 
         <div class="form-field">
           <label class="form-label" for="password">
-            密码
-            <RouterLink to="/register" class="form-label-link" tabindex="-1">忘记密码?</RouterLink>
+            {{ t('auth.password') }}
           </label>
           <div class="input-wrap">
             <input
@@ -48,12 +44,12 @@
               :type="showPassword ? 'text' : 'password'"
               class="input input-with-suffix"
               :class="{ 'input-error': errors.password }"
-              placeholder="输入密码"
+              :placeholder="t('auth.passwordPlaceholder')"
               autocomplete="current-password"
               @blur="validatePassword"
             />
             <button type="button" class="input-suffix-btn" @click="showPassword = !showPassword" tabindex="-1">
-              {{ showPassword ? '隐藏' : '显示' }}
+              {{ showPassword ? t('auth.hide') : t('auth.show') }}
             </button>
           </div>
           <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
@@ -68,13 +64,13 @@
 
         <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading">
           <span v-if="loading" class="btn-spinner" />
-          {{ loading ? '登录中…' : '登录' }}
+          {{ loading ? t('common.loading') : t('auth.login') }}
         </button>
       </form>
 
       <p class="auth-switch">
-        还没有账号？
-        <RouterLink to="/register" class="auth-switch-link">立即注册 →</RouterLink>
+        {{ t('auth.noAccount') }}
+        <RouterLink to="/register" class="auth-switch-link">{{ t('auth.goRegister') }} →</RouterLink>
       </p>
     </div>
   </div>
@@ -83,9 +79,11 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const { t } = useI18n()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -97,9 +95,9 @@ const errors = reactive({ email: '', password: '' })
 
 function validateEmail() {
   if (!email.value) {
-    errors.email = '请输入邮箱地址'
+    errors.email = t('auth.emailRequired')
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    errors.email = '请输入有效的邮箱地址'
+    errors.email = t('auth.emailInvalid')
   } else {
     errors.email = ''
   }
@@ -107,7 +105,7 @@ function validateEmail() {
 
 function validatePassword() {
   if (!password.value) {
-    errors.password = '请输入密码'
+    errors.password = t('auth.passwordRequired')
   } else {
     errors.password = ''
   }
@@ -128,7 +126,7 @@ async function handleLogin() {
     if (typeof msg === 'string') {
       serverError.value = msg
     } else {
-      serverError.value = '登录失败，请检查账号密码'
+      serverError.value = t('auth.loginFailed')
     }
   } finally {
     loading.value = false
