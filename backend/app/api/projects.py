@@ -22,6 +22,7 @@ async def create_project(data: ProjectCreate, db: AsyncSession = Depends(get_db)
     project = Project(id=str(uuid.uuid4()), user_id=user.id, name=data.name, description=data.description)
     db.add(project)
     await db.flush()
+    await db.refresh(project)
     return ProjectOut.model_validate(project)
 
 
