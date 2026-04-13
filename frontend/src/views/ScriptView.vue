@@ -2,19 +2,19 @@
   <div class="script-page">
     <!-- Header -->
     <div class="script-header">
-      <button class="btn-back" @click="router.push('/dashboard')">← 返回</button>
-      <span class="page-title">剧本工坊</span>
+      <button class="btn-back" @click="router.push('/dashboard')">← {{ t('guide.back') }}</button>
+      <span class="page-title">{{ t('script.title') }}</span>
       <div class="format-tabs">
         <button
           class="format-tab"
           :class="{ active: selectedFormat === 'voiceover' }"
           @click="selectedFormat = 'voiceover'"
-        >🎤 口播文案</button>
+        >{{ t('script.voiceover') }}</button>
         <button
           class="format-tab"
           :class="{ active: selectedFormat === 'storyboard' }"
           @click="selectedFormat = 'storyboard'"
-        >🎬 分镜脚本</button>
+        >{{ t('script.storyboard') }}</button>
       </div>
       <div class="header-actions">
         <span v-if="scriptStore.script" class="version-badge">v{{ scriptStore.script.version }}</span>
@@ -22,22 +22,22 @@
           class="btn-ghost"
           :disabled="scriptStore.generating"
           @click="handleGenerate"
-          :title="`重新生成（${selectedFormat === 'storyboard' ? '分镜' : '口播'}格式）`"
-        >{{ scriptStore.generating ? '生成中…' : '重新生成' }}</button>
+          :title="`${t('script.regenerate')}（${selectedFormat === 'storyboard' ? t('script.storyboard') : t('script.voiceover')}格式）`"
+        >{{ scriptStore.generating ? t('script.generating') : t('script.regenerate') }}</button>
         <button
           class="btn-primary"
           :disabled="saving || !dirty"
           @click="handleSave"
         >
           <span v-if="saving" class="mini-spin"></span>
-          <span v-else>{{ dirty ? '保存' : '已保存' }}</span>
+          <span v-else>{{ dirty ? t('common.save') : t('script.saved') }}</span>
         </button>
         <button
           class="btn-next"
           :disabled="dirty"
           @click="goToUpload"
-          title="去上传视频"
-        >上传视频 →</button>
+          title="{{ t('script.goUpload') }}"
+        >{{ t('script.goUpload') }} →</button>
       </div>
     </div>
 
@@ -47,33 +47,33 @@
         <div class="pulse-ring"></div>
         <span class="ai-icon">✦</span>
       </div>
-      <p class="splash-label">{{ scriptStore.generating ? 'AI 正在创作中…' : '加载中…' }}</p>
+      <p class="splash-label">{{ scriptStore.generating ? t('script.aiWriting') : t('common.loading') }}</p>
       <p v-if="scriptStore.generating && generatingTokenCount > 0" class="token-counter">
-        已接收 {{ generatingTokenCount }} 个 token
+        {{ t('script.tokenCount', { count: generatingTokenCount }) }}
       </p>
     </div>
 
     <!-- error -->
     <div v-else-if="errMsg" class="splash">
       <p class="err-msg">{{ errMsg }}</p>
-      <button class="btn-primary" @click="handleGenerate">重试</button>
+      <button class="btn-primary" @click="handleGenerate">{{ t('script.retry') }}</button>
     </div>
 
     <!-- empty — guide not done -->
     <div v-else-if="guideIncomplete" class="splash">
       <div class="empty-icon">📋</div>
-      <p class="splash-label">请先完成创作向导，AI 才能生成剧本。</p>
+      <p class="splash-label">{{ t('script.guideIncomplete') }}</p>
       <button class="btn-primary" @click="router.push(`/project/${projectId}/guide`)">
-        去完成向导
+        {{ t('script.goGuide') }}
       </button>
     </div>
 
     <!-- no script yet -->
     <div v-else-if="!scriptStore.script" class="splash">
       <div class="empty-icon">✨</div>
-      <p class="splash-label">还没有剧本，让 AI 来创作第一稿吧。</p>
+      <p class="splash-label">{{ t('script.noScript') }}</p>
       <button class="btn-primary btn-lg" @click="handleGenerate">
-        生成剧本
+        {{ t('script.generate') }}
       </button>
     </div>
 
@@ -83,22 +83,22 @@
 
         <!-- Title + Hook -->
         <section class="editor-section">
-          <label class="field-label">标题</label>
+          <label class="field-label">{{ t('script.fieldTitle') }}</label>
           <input
             v-model="draft.title"
             class="field-input"
-            placeholder="视频标题"
+            :placeholder="t('script.titlePlaceholder')"
             @input="dirty = true"
           />
         </section>
 
         <section class="editor-section">
-          <label class="field-label">开场钩子</label>
+          <label class="field-label">{{ t('script.hook') }}</label>
           <textarea
             v-model="draft.hook"
             class="field-textarea"
             rows="3"
-            placeholder="吸引观众的开场白…"
+            :placeholder="t('script.hookPlaceholder')"
             @input="dirty = true"
           ></textarea>
         </section>
@@ -106,8 +106,8 @@
         <!-- Sections -->
         <section class="editor-section">
           <div class="section-header-row">
-            <label class="field-label">正文段落</label>
-            <button class="btn-add-section" @click="addSection">+ 新增段落</button>
+            <label class="field-label">{{ t('script.sections') }}</label>
+            <button class="btn-add-section" @click="addSection">{{ t('script.addSection') }}</button>
           </div>
 
           <div
@@ -124,7 +124,7 @@
                 @input="dirty = true"
               />
               <span class="duration-badge">{{ sec.duration_estimate }}</span>
-              <button class="btn-icon" title="AI 改写此段" @click="openRewrite(idx)">✦</button>
+              <button class="btn-icon" :title="t('script.rewriteSection')" @click="openRewrite(idx)">✦</button>
               <button class="btn-icon btn-danger" @click="removeSection(idx)">✕</button>
             </div>
             <!-- voiceover: 口播文案区域 -->
@@ -164,7 +164,7 @@
                   v-model="sec.voiceover"
                   class="sb-textarea"
                   rows="3"
-                  placeholder="口播文案"
+                  :placeholder="t('script.voiceoverPlaceholder')"
                   @input="dirty = true"
                 ></textarea>
               </div>
@@ -190,14 +190,14 @@
                   placeholder="改写要求，例如：更口语化、缩短到 15 秒、加入数据支撑…"
                 ></textarea>
                 <div class="rewrite-actions">
-                  <button class="btn-ghost btn-sm" @click="closeRewrite">取消</button>
+                  <button class="btn-ghost btn-sm" @click="closeRewrite">{{ t('common.cancel') }}</button>
                   <button
                     class="btn-primary btn-sm"
                     :disabled="rewriting || !rewriteInstruction.trim()"
                     @click="submitRewrite(idx)"
                   >
                     <span v-if="rewriting" class="mini-spin"></span>
-                    <span v-else>✦ AI 改写</span>
+                    <span v-else>{{ t('script.aiRewrite') }}</span>
                   </button>
                 </div>
               </template>
@@ -225,7 +225,7 @@
                   </div>
                 </div>
                 <div class="rewrite-actions">
-                  <button class="btn-ghost btn-sm" @click="discardRewrite(idx)">放弃</button>
+                  <button class="btn-ghost btn-sm" @click="discardRewrite(idx)">{{ t('script.discard') }}</button>
                   <button class="btn-primary btn-sm" @click="applyRewrite(idx)">✓ 应用改写</button>
                 </div>
               </template>
@@ -237,12 +237,12 @@
 
         <!-- CTA -->
         <section class="editor-section">
-          <label class="field-label">行动号召（CTA）</label>
+          <label class="field-label">{{ t('script.cta') }}</label>
           <textarea
             v-model="draft.cta"
             class="field-textarea"
             rows="2"
-            placeholder="结尾引导观众做的事情…"
+            :placeholder="t('script.ctaPlaceholder')"
             @input="dirty = true"
           ></textarea>
         </section>
@@ -267,23 +267,23 @@
           <div class="duration-total">{{ draft.total_duration_estimate }}</div>
           <div class="duration-breakdown">
             <div class="dur-row" v-for="sec in draft.sections" :key="sec.id">
-              <span class="dur-label">{{ sec.title || '无标题' }}</span>
+              <span class="dur-label">{{ sec.title || t('script.untitled') }}</span>
               <span class="dur-val">{{ sec.duration_estimate }}</span>
             </div>
           </div>
         </div>
 
         <div class="sidebar-card">
-          <div class="sidebar-title">💡 格式</div>
+          <div class="sidebar-title">💡 {{ t('script.format') }}</div>
           <div class="format-tag">{{ scriptStore.script.format }}</div>
         </div>
 
         <div class="sidebar-card tips-card">
-          <div class="sidebar-title">🔧 快捷操作</div>
+          <div class="sidebar-title">🔧 {{ t('script.shortcuts') }}</div>
           <ul class="tips-list">
-            <li>点击 <span class="kbd">✦</span> AI 改写某段</li>
-            <li>添加/删除段落随意调整</li>
-            <li>保存后可去上传视频</li>
+            <li>{{ t('script.tip1') }}</li>
+            <li>{{ t('script.tip2') }}</li>
+            <li>{{ t('script.tip3') }}</li>
           </ul>
         </div>
       </aside>
@@ -293,10 +293,10 @@
     <teleport to="body">
       <div v-if="showLeaveConfirm" class="modal-overlay" @click.self="showLeaveConfirm = false">
         <div class="modal">
-          <p>有未保存的修改，确定要离开吗？</p>
+          <p>有未保存的修改，{{ t('script.leaveConfirm') }}</p>
           <div class="modal-actions">
-            <button class="btn-ghost" @click="showLeaveConfirm = false">继续编辑</button>
-            <button class="btn-danger-solid" @click="confirmLeave">不保存，离开</button>
+            <button class="btn-ghost" @click="showLeaveConfirm = false">{{ t('script.keepEditing') }}</button>
+            <button class="btn-danger-solid" @click="confirmLeave">{{ t('script.discardLeave') }}</button>
           </div>
         </div>
       </div>
@@ -307,6 +307,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useScriptStore } from '@/stores/script'
 import * as scriptApi from '@/api/scripts'
 import type { ParagraphRewriteResult } from '@/api/scripts'
@@ -316,6 +317,7 @@ import type { ScriptContent, ScriptSection } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const scriptStore = useScriptStore()
 
 const projectId = route.params.projectId as string
