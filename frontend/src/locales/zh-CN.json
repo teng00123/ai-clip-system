@@ -83,13 +83,27 @@
     "creating": "创建中…"
   },
   "guide": {
-    "title": "问答引导",
-    "static": "固定题库模式",
-    "dynamic": "智能问答模式",
+    "title": "创作向导",
+    "back": "返回",
+    "static": "经典模式",
+    "staticDesc": "8 道固定问题，快速完成，适合初次使用。",
+    "dynamic": "AI 动态模式",
+    "dynamicDesc": "AI 根据你的回答追问，6~10 轮，更精准理解需求。",
+    "dynamicUnavailable": "需配置 AI Key",
+    "recommended": "推荐",
+    "smart": "智能",
+    "start": "开始向导",
     "submit": "提交答案",
     "next": "下一题",
     "complete": "完成引导",
-    "answerPlaceholder": "请输入你的答案..."
+    "completed": "完成！",
+    "completedDesc": "我们已经为你生成了初步的创作 Brief。",
+    "answerPlaceholder": "请输入你的答案...",
+    "loading": "加载中…",
+    "thinking": "AI 思考中…",
+    "answeredCount": "已回答 {count} 题",
+    "viewBrief": "查看 Brief",
+    "nextStep": "下一步：编写剧本"
   },
   "script": {
     "title": "剧本编辑",
