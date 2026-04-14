@@ -382,7 +382,7 @@ watch(
 )
 
 onMounted(async () => {
-  // 先检查向导是否完成，避免后续加载因 guide 未完成报错
+  // 先确认 guide 是否完成，再加载剧本
   try {
     const sessionRes = await guideApi.getSession(projectId)
     if (!sessionRes.data?.completed) {
