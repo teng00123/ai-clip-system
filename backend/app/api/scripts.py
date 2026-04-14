@@ -180,6 +180,32 @@ async def save_streamed_script(
     await db.flush()
     return ScriptOut.model_validate(script)
 
+@router.get("/{project_id}/latest", response_model=ScriptOut)
+async def get_latest_script(
+    project_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    await get_project_for_user(project_id, db, user)
+    # 优先取 is_latest=True 的记录；若不存在（数据不一致）则回退到版本号最大的记录
+    result = await db.execute(
+        select(Script)
+        .where(Script.project_id == project_id, Script.is_latest == True)
+    )
+    script = result.scalar_one_or_none()
+    if not script:
+        # 兜底：按 version 降序取最新一条
+        fallback = await db.execute(
+            select(Script)
+            .where(Script.project_id == project_id)
+            .order_by(Script.version.desc())
+        )
+        script = fallback.scalars().first()
+    if not script:
+        raise HTTPException(status_code=404, detail="No script found")
+    return ScriptOut.model_validate(script)
+
+
 @router.get("/{project_id}", response_model=List[ScriptOut])
 async def list_scripts(
     project_id: str,
@@ -191,22 +217,6 @@ async def list_scripts(
         select(Script).where(Script.project_id == project_id).order_by(Script.version.desc())
     )
     return [ScriptOut.model_validate(s) for s in result.scalars().all()]
-
-
-@router.get("/{project_id}/latest", response_model=ScriptOut)
-async def get_latest_script(
-    project_id: str,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    await get_project_for_user(project_id, db, user)
-    result = await db.execute(
-        select(Script).where(Script.project_id == project_id, Script.is_latest == True)
-    )
-    script = result.scalar_one_or_none()
-    if not script:
-        raise HTTPException(status_code=404, detail="No script found")
-    return ScriptOut.model_validate(script)
 
 
 @router.patch("/{script_id}", response_model=ScriptOut)
