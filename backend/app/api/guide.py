@@ -17,6 +17,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm.attributes import flag_modified
 import uuid
 
 from app.database import get_db
@@ -161,6 +162,7 @@ async def submit_answer(
     answers = dict(session.answers or {})
     answers[str(data.step)] = data.answer
     session.answers = answers
+    flag_modified(session, "answers")
 
     next_step = data.step + 1
     if next_step >= TOTAL_STEPS:
@@ -215,6 +217,7 @@ async def dynamic_start(
     if result["question"]:
         history.append({"role": "assistant", "content": result["question"]})
         session.conversation_history = history
+        flag_modified(session, "conversation_history")
         session.mode = "dynamic"
         await db.flush()
 
@@ -261,6 +264,7 @@ async def dynamic_answer(
     answers = dict(session.answers or {})
     answers[str(answers_count - 1)] = data.answer
     session.answers = answers
+    flag_modified(session, "answers")
 
     # 3. 调用 LLM 获取下一问题
     try:
@@ -278,6 +282,7 @@ async def dynamic_answer(
     if is_complete:
         # 4a. 对话结束：生成 Brief
         session.conversation_history = history
+        flag_modified(session, "conversation_history")
         session.completed = True
         session.step = answers_count
 
@@ -311,6 +316,7 @@ async def dynamic_answer(
             history.append({"role": "assistant", "content": next_question})
 
         session.conversation_history = history
+        flag_modified(session, "conversation_history")
         session.step = answers_count
         await db.flush()
 
