@@ -382,18 +382,21 @@ watch(
 )
 
 onMounted(async () => {
+  // 先检查向导是否完成，避免后续加载因 guide 未完成报错
+  try {
+    const sessionRes = await guideApi.getSession(projectId)
+    if (!sessionRes.data?.completed) {
+      guideIncomplete.value = true
+      return
+    }
+  } catch {
+    // session 不存在或接口异常，视为未完成
+    guideIncomplete.value = true
+    return
+  }
+
   await scriptStore.loadLatestScript(projectId)
   syncFormatFromStore()
-  if (!scriptStore.script) {
-    // check if guide is complete
-    try {
-      const res = await guideApi.getBrief(projectId)
-      const brief = res.data?.brief
-      guideIncomplete.value = !brief || Object.keys(brief).length === 0
-    } catch {
-      guideIncomplete.value = true
-    }
-  }
 })
 
 async function handleGenerate() {
