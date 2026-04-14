@@ -11,12 +11,15 @@
 from typing import Dict, Any, List, Optional
 import json
 import re
+import logging
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.output_parsers import StrOutputParser
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 # ── LLM 工厂 ──────────────────────────────────────────────────────────────────
@@ -159,6 +162,14 @@ async def get_next_question(
             messages.append(HumanMessage(content=f"请继续提问。{hint}"))
 
     response = await llm.ainvoke(messages)
+    logger.warning(
+        "[DYN-QA] answers_count=%d history_len=%d "
+        "messages=[%s] raw_response=%r",
+        answers_count,
+        len(conversation_history),
+        ", ".join(f"{type(m).__name__}({m.content[:40]!r})" for m in messages),
+        response.content,
+    )
     return _parse_llm_json(response.content)
 
 
