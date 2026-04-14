@@ -2,14 +2,14 @@
   <div class="clip-page">
     <!-- Header -->
     <div class="clip-header">
-      <button class="btn-back" @click="router.push(`/project/${projectId}/upload`)">← 上传</button>
-      <span class="page-title">AI 剪辑</span>
+      <button class="btn-back" @click="router.push(`/project/${projectId}/upload`)">← {{ t('nav.step3') }}</button>
+      <span class="page-title">{{ t('clip.title') }}</span>
       <div class="header-actions">
         <button
           v-if="canExport"
           class="btn-next"
           @click="goToExport"
-        >导出 →</button>
+        >{{ t('clip.export') }} →</button>
       </div>
     </div>
 
@@ -21,15 +21,15 @@
         <!-- 初始化中 -->
         <div v-if="initializing" class="splash">
           <div class="spinner"></div>
-          <p class="splash-hint">加载中…</p>
+          <p class="splash-hint">{{ t('common.loading') }}</p>
         </div>
 
         <!-- 无可用视频 -->
         <div v-else-if="!videoList.length" class="splash">
           <div class="splash-icon">📹</div>
-          <p class="splash-hint">请先上传视频再开始剪辑</p>
+          <p class="splash-hint">{{ t('clip.noVideo') }}</p>
           <button class="btn-primary" @click="router.push(`/project/${projectId}/upload`)">
-            去上传视频
+            {{ t('clip.goUpload') }}
           </button>
         </div>
 
@@ -38,7 +38,7 @@
 
           <!-- 视频选择 -->
           <section class="card select-card">
-            <div class="card-title">选择视频</div>
+            <div class="card-title">{{ t('clip.selectVideo') }}</div>
             <div class="video-options">
               <div
                 v-for="v in videoList"
@@ -61,8 +61,8 @@
               <div class="job-ready">
                 <div class="ready-icon">✂️</div>
                 <div class="ready-text">
-                  <p class="ready-title">准备好了！</p>
-                  <p class="ready-hint">AI 将根据剧本，从视频中剪出最精彩的片段。</p>
+                  <p class="ready-title">{{ t('clip.readyTitle') }}</p>
+                  <p class="ready-hint">{{ t('clip.readyHint') }}</p>
                 </div>
               </div>
               <p v-if="submitErr" class="err-msg">{{ submitErr }}</p>
@@ -72,7 +72,7 @@
                 @click="handleSubmit"
               >
                 <span v-if="clipStore.loading" class="mini-spin"></span>
-                <span v-else>🚀 开始 AI 剪辑</span>
+                <span v-else>🚀 {{ t('clip.startClip') }}</span>
               </button>
             </template>
 
@@ -85,8 +85,8 @@
                     <span class="pr-icon">✦</span>
                   </div>
                   <div>
-                    <p class="running-title">剪辑进行中</p>
-                    <p class="running-msg">{{ clipStore.progressMessage || 'AI 正在分析视频…' }}</p>
+                    <p class="running-title">{{ t('clip.inProgress') }}</p>
+                    <p class="running-msg">{{ clipStore.progressMessage || t('clip.analyzing') }}</p>
                   </div>
                 </div>
                 <div class="big-progress-track">
@@ -94,7 +94,7 @@
                 </div>
                 <div class="progress-row">
                   <span class="progress-pct">{{ clipStore.progress }}%</span>
-                  <span class="progress-eta" v-if="etaText">预计剩余 {{ etaText }}</span>
+                  <span class="progress-eta" v-if="etaText">{{ t('clip.eta') }} {{ etaText }}</span>
                 </div>
               </div>
             </template>
@@ -104,8 +104,8 @@
               <div class="job-done">
                 <div class="done-badge">🎉</div>
                 <div>
-                  <p class="done-title">剪辑完成！</p>
-                  <p class="done-hint">共生成 {{ clipStore.job?.clip_plan?.total_scenes ?? 0 }} 个片段</p>
+                  <p class="done-title">{{ t('clip.done') }}</p>
+                  <p class="done-hint">{{ t('clip.doneHint', { count: clipStore.job?.clip_plan?.total_scenes ?? 0 }) }}</p>
                 </div>
               </div>
             </template>
@@ -115,20 +115,20 @@
               <div class="job-failed">
                 <div class="failed-icon">❌</div>
                 <div>
-                  <p class="failed-title">剪辑失败</p>
-                  <p class="failed-hint">{{ clipStore.job?.error_msg || '未知错误' }}</p>
+                  <p class="failed-title">{{ t('clip.failed') }}</p>
+                  <p class="failed-hint">{{ clipStore.job?.error_msg || t('clip.unknownError') }}</p>
                 </div>
               </div>
-              <button class="btn-ghost" @click="retryJob">重新剪辑</button>
+              <button class="btn-ghost" @click="retryJob">{{ t('clip.retry') }}</button>
             </template>
           </section>
 
           <!-- 时间轴编辑器（done 时展示） -->
           <section v-if="isDone && clipStore.job?.clip_plan?.segments?.length" class="card timeline-card">
             <div class="card-title">
-              ✂ 时间轴编辑器
+              ✂ {{ t('timeline.title') }}
               <span class="segments-count">{{ clipStore.job.clip_plan.total_scenes }} 个片段</span>
-              <span class="tl-hint">拖动切点调整剪辑范围</span>
+              <span class="tl-hint">{{ t('clip.timelineHint') }}</span>
             </div>
             <TimelineEditor
               :job-id="clipStore.job.id"
@@ -144,25 +144,25 @@
       <aside class="clip-sidebar">
         <!-- 任务状态卡 -->
         <div class="sidebar-card" v-if="clipStore.job">
-          <div class="sidebar-title">📋 任务状态</div>
+          <div class="sidebar-title">📋 {{ t('clip.taskStatus') }}</div>
           <div :class="['status-pill', statusClass]">{{ statusLabel }}</div>
           <div class="meta-row">
-            <span class="meta-k">任务 ID</span>
+            <span class="meta-k">{{ t('export.taskId') }}</span>
             <span class="meta-v mono">{{ clipStore.job.id.slice(0, 8) }}…</span>
           </div>
           <div class="meta-row" v-if="clipStore.job.clip_plan">
-            <span class="meta-k">片段数</span>
+            <span class="meta-k">{{ t('export.segments') }}</span>
             <span class="meta-v">{{ clipStore.job.clip_plan.total_scenes }}</span>
           </div>
           <div class="meta-row">
-            <span class="meta-k">创建于</span>
+            <span class="meta-k">{{ t('clip.createdAt') }}</span>
             <span class="meta-v">{{ fmtDate(clipStore.job.created_at) }}</span>
           </div>
         </div>
 
         <!-- 历史任务 -->
         <div class="sidebar-card" v-if="historyJobs.length > 1">
-          <div class="sidebar-title">🕐 历史任务</div>
+          <div class="sidebar-title">🕐 {{ t('clip.history') }}</div>
           <div
             v-for="j in historyJobs.slice(0, 5)"
             :key="j.id"
@@ -177,32 +177,32 @@
 
         <!-- 重渲染卡 -->
         <div class="sidebar-card rerender-card" v-if="isDone && clipStore.job?.clip_plan?.segments?.length">
-          <div class="sidebar-title">♻️ 重新渲染</div>
-          <p class="next-hint">在时间轴编辑完片段后，点击按鈕以新方案重生成视频。</p>
+          <div class="sidebar-title">♻️ {{ t('clip.rerender') }}</div>
+          <p class="next-hint">{{ t('clip.rerenderHint') }}</p>
           <button
             class="btn-primary btn-block"
             :disabled="isRerendering"
             @click="handleRerender"
           >
-            {{ isRerendering ? '重渲染中…' : '重新生成视频' }}
+            {{ isRerendering ? t('clip.rerendering') : t('clip.rerenderBtn') }}
           </button>
           <p v-if="rerenderError" class="rerender-error">❌ {{ rerenderError }}</p>
         </div>
 
         <!-- 导出卡 -->
         <div class="sidebar-card next-card" v-if="canExport">
-          <div class="sidebar-title">✅ 下一步</div>
-          <p class="next-hint">剪辑完成，可以下载或导出成品视频。</p>
-          <button class="btn-primary btn-block" @click="goToExport">去导出 →</button>
+          <div class="sidebar-title">✅ {{ t('clip.nextStep') }}</div>
+          <p class="next-hint">{{ t('clip.nextStepHint') }}</p>
+          <button class="btn-primary btn-block" @click="goToExport">{{ t('clip.goExport') }} →</button>
         </div>
 
         <!-- tips -->
         <div class="sidebar-card tips-card" v-if="!clipStore.job || isProcessing">
-          <div class="sidebar-title">💡 小贴士</div>
+          <div class="sidebar-title">💡 {{ t('clip.tips') }}</div>
           <ul class="tips-list">
-            <li>剪辑通常需要 1 ~ 3 分钟</li>
-            <li>可关闭页面，稍后回来查看</li>
-            <li>结果基于你的剧本生成</li>
+            <li>{{ t('clip.tip1') }}</li>
+            <li>{{ t('clip.tip2') }}</li>
+            <li>{{ t('clip.tip3') }}</li>
           </ul>
         </div>
       </aside>
@@ -214,6 +214,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useClipStore } from '@/stores/clip'
 import type { ClipJob, Video } from '@/types'
 import * as videoApi from '@/api/videos'
@@ -222,6 +223,7 @@ import TimelineEditor from '@/components/TimelineEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const clipStore = useClipStore()
 
 const projectId = route.params.projectId as string

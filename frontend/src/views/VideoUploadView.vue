@@ -2,13 +2,13 @@
   <div class="upload-page">
     <!-- Header -->
     <div class="upload-header">
-      <button class="btn-back" @click="router.push(`/project/${projectId}/script`)">← 剧本</button>
-      <span class="page-title">上传视频</span>
+      <button class="btn-back" @click="router.push(`/project/${projectId}/script`)">← {{ t('nav.step2') }}</button>
+      <span class="page-title">{{ t('video.title') }}</span>
       <button
         class="btn-next"
         :disabled="!uploadedVideo"
         @click="goToClip"
-      >开始剪辑 →</button>
+      >{{ t('video.startClip') }} →</button>
     </div>
 
     <div class="upload-body">
@@ -22,12 +22,12 @@
           <div class="uploaded-info">
             <p class="uploaded-filename">{{ uploadedVideo.filename }}</p>
             <p class="uploaded-meta">
-              <span v-if="uploadedVideo.duration">时长 {{ formatDuration(uploadedVideo.duration) }}</span>
+              <span v-if="uploadedVideo.duration">{{ t('video.duration') }} {{ formatDuration(uploadedVideo.duration) }}</span>
               <span class="dot" v-if="uploadedVideo.duration"> · </span>
-              <span class="uploaded-ok">✓ 上传完成</span>
+              <span class="uploaded-ok">✓ {{ t('video.uploadComplete') }}</span>
             </p>
           </div>
-          <button class="btn-ghost btn-sm" @click="resetUpload">换一个</button>
+          <button class="btn-ghost btn-sm" @click="resetUpload">{{ t('video.changeFile') }}</button>
         </div>
 
         <!-- 拖拽 / 点选区 -->
@@ -50,9 +50,9 @@
 
           <div v-if="!uploading" class="drop-content">
             <div class="drop-icon">📁</div>
-            <p class="drop-label">拖拽视频文件到这里</p>
-            <p class="drop-hint">或点击选择文件</p>
-            <p class="drop-formats">支持 MP4 · MOV · AVI &nbsp;|&nbsp; 最大 500 MB</p>
+            <p class="drop-label">{{ t('video.dragHint') }}</p>
+            <p class="drop-hint">{{ t('video.clickHint') }}</p>
+            <p class="drop-formats">{{ t('video.formats') }}</p>
           </div>
 
           <!-- 上传进度 -->
@@ -62,7 +62,7 @@
               <div class="progress-bar-fill" :style="{ width: uploadProgress + '%' }"></div>
             </div>
             <div class="progress-pct">{{ uploadProgress }}%</div>
-            <button class="btn-cancel" @click.stop="cancelUpload">取消</button>
+            <button class="btn-cancel" @click.stop="cancelUpload">{{ t('common.cancel') }}</button>
           </div>
         </div>
 
@@ -70,7 +70,7 @@
 
         <!-- 已上传列表 -->
         <div v-if="videoList.length > 0" class="video-list">
-          <div class="list-label">已上传的视频</div>
+          <div class="list-label">{{ t('video.uploadedList') }}</div>
           <div
             v-for="v in videoList"
             :key="v.id"
@@ -88,12 +88,12 @@
       <!-- ── 右栏：说明 ── -->
       <aside class="upload-sidebar">
         <div class="sidebar-card">
-          <div class="sidebar-title">📋 上传要求</div>
+          <div class="sidebar-title">📋 {{ t('video.requirements') }}</div>
           <ul class="req-list">
-            <li>格式：MP4、MOV、AVI</li>
-            <li>大小：最大 500 MB</li>
-            <li>建议横屏 16:9 或竖屏 9:16</li>
-            <li>分辨率 1080p 以上效果最佳</li>
+            <li>{{ t('video.reqFormat') }}</li>
+            <li>{{ t('video.reqSize') }}</li>
+            <li>{{ t('video.reqRatio') }}</li>
+            <li>{{ t('video.reqResolution') }}</li>
           </ul>
         </div>
 
@@ -120,11 +120,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { Video } from '@/types'
 import * as videoApi from '@/api/videos'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const projectId = route.params.projectId as string
 
 const MAX_SIZE = 500 * 1024 * 1024
