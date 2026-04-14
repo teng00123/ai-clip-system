@@ -62,6 +62,9 @@ async def generate_script_for_project(
     if not guide.completed:
         raise HTTPException(status_code=400, detail="Complete the guide session first")
 
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="AI 服务未配置，请联系管理员设置 OPENAI_API_KEY")
+
     content = await generate_script(guide.brief, fmt=req.format)
 
     await db.execute(
@@ -283,6 +286,9 @@ async def rewrite_paragraph_endpoint(
     - `preview=false`：改写后直接保存到 DB
     """
     script = await get_script_for_user(script_id, db, user)
+
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="AI 服务未配置，请联系管理员设置 OPENAI_API_KEY")
 
     try:
         result = await rewrite_paragraph(

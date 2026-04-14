@@ -85,6 +85,15 @@ BRIEF_SYSTEM_PROMPT = """\
 def _parse_llm_json(content: str) -> Dict:
     """解析 LLM 返回的 JSON，容错处理 markdown fence 和前后说明文字"""
     content = content.strip()
+
+    if not content:
+        raise ValueError(
+            "模型返回空内容。请检查："
+            "1) OPENAI_API_KEY 是否已配置真实密钥；"
+            "2) OPENAI_BASE_URL 是否可达；"
+            "3) 后端日志中是否有 API 报错。"
+        )
+
     content = re.sub(r'^```(?:json)?\s*', '', content)
     content = re.sub(r'\s*```$', '', content)
     content = content.strip()
