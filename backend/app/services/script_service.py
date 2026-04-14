@@ -252,6 +252,14 @@ def _extract_json(text: str) -> Dict:
     """
     text = text.strip()
 
+    if not text:
+        raise ValueError(
+            "模型返回空内容。请检查："
+            "1) OPENAI_API_KEY 是否已配置真实密钥；"
+            "2) OPENAI_BASE_URL 是否可达；"
+            "3) 后端日志中是否有 API 报错。"
+        )
+
     # 去掉 markdown 代码块
     if text.startswith("```"):
         lines = text.split("\n")
