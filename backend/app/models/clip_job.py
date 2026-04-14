@@ -17,6 +17,7 @@ class ClipJob(Base):
     project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id"), nullable=False)
     video_id: Mapped[str] = mapped_column(String(36), ForeignKey("videos.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="pending")
+    celery_task_id: Mapped[str] = mapped_column(String(255), nullable=True)  # 用于 revoke
     clip_plan: Mapped[dict] = mapped_column(JsonType, nullable=True)
     progress: Mapped[int] = mapped_column(Integer, default=0)
     output_path: Mapped[str] = mapped_column(String(500), nullable=True)

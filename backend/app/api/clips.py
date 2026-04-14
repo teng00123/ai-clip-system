@@ -15,9 +15,11 @@ from app.utils.deps import (
     get_guide_session_for_project,
 )
 from app.utils.storage import get_presigned_url
-from app.tasks.clip_task import rerender_clip_job
-import json
+from app.tasks.clip_task import rerender_clip_job, process_clip_job
+from app.tasks.celery_app import celery_app
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/clips", tags=["clips"])
 
 
@@ -159,9 +161,100 @@ async def rerender_clip_job_endpoint(
     await db.flush()
 
     # Dispatch Celery rerender task
-    rerender_clip_job.delay(job_id, job.video_id)
+    r = rerender_clip_job.delay(job_id, job.video_id)
+    await db.execute(
+        update(ClipJob).where(ClipJob.id == job_id).values(celery_task_id=r.id)
+    )
+    await db.flush()
 
     # Return updated job
     result = await db.execute(select(ClipJob).where(ClipJob.id == job_id))
     updated = result.scalars().first()
     return ClipJobOut.model_validate(updated)
+
+
+@router.post("/{job_id}/cancel", response_model=ClipJobOut)
+async def cancel_clip_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    终止进行中的剪辑任务。
+    - 如果 Celery 任务还在运行，发送 revoke 并尝试中断
+    - 无论是否 revoke 成功，都把 DB 状态改为 cancelled
+    """
+    job = await get_clip_job_for_user(job_id, db, user)
+
+    if job.status not in ("pending", "processing"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"任务状态为 {job.status!r}，只有 pending/processing 状态的任务可以终止",
+        )
+
+    # 尝试 revoke Celery 任务
+    if job.celery_task_id:
+        try:
+            celery_app.control.revoke(job.celery_task_id, terminate=True, signal="SIGTERM")
+            logger.info("Revoked Celery task %s for job %s", job.celery_task_id, job_id)
+        except Exception as exc:
+            logger.warning("Failed to revoke Celery task %s: %s", job.celery_task_id, exc)
+
+    await db.execute(
+        update(ClipJob)
+        .where(ClipJob.id == job_id)
+        .values(status="cancelled", error_msg="用户手动终止")
+    )
+    await db.flush()
+
+    result = await db.execute(select(ClipJob).where(ClipJob.id == job_id))
+    return ClipJobOut.model_validate(result.scalars().first())
+
+
+@router.post("/{job_id}/retry", response_model=ClipJobOut)
+async def retry_clip_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    重试失败、超时或被取消的剪辑任务。
+    重新发起完整的 process_clip_job 流程（重新分析+渲染）。
+    """
+    job = await get_clip_job_for_user(job_id, db, user)
+
+    if job.status not in ("failed", "cancelled"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"任务状态为 {job.status!r}，只有 failed/cancelled 状态可以重试",
+        )
+
+    if not job.video_id:
+        raise HTTPException(status_code=400, detail="该任务没有关联视频，无法重试")
+
+    # 重置状态
+    await db.execute(
+        update(ClipJob)
+        .where(ClipJob.id == job_id)
+        .values(status="pending", progress=0, error_msg=None, celery_task_id=None)
+    )
+    await db.flush()
+
+    # 重新发送完整流程
+    try:
+        r = process_clip_job.delay(job_id, job.video_id)
+        await db.execute(
+            update(ClipJob).where(ClipJob.id == job_id).values(celery_task_id=r.id)
+        )
+        await db.flush()
+        logger.info("Retried clip job %s, new task_id=%s", job_id, r.id)
+    except Exception as exc:
+        await db.execute(
+            update(ClipJob).where(ClipJob.id == job_id)
+            .values(status="failed", error_msg=f"重试失败: {exc}")
+        )
+        await db.flush()
+        raise HTTPException(status_code=503, detail=f"任务队列不可用，重试失败: {exc}")
+
+    result = await db.execute(select(ClipJob).where(ClipJob.id == job_id))
+    return ClipJobOut.model_validate(result.scalars().first())

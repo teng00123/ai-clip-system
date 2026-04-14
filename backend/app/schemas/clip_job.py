@@ -38,6 +38,7 @@ class ClipJobOut(BaseModel):
     project_id: str
     video_id: str
     status: str
+    celery_task_id: Optional[str]
     clip_plan: Optional[Dict]
     progress: int
     output_path: Optional[str]
