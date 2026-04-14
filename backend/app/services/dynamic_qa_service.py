@@ -122,23 +122,41 @@ async def get_next_question(
     if llm is None:
         raise RuntimeError("OpenAI API Key not configured, dynamic mode unavailable")
 
+    hint = (
+        f"\uff08系统提示：已回答 {answers_count} 个问题。"
+        f"{'如果信息已足够生成创作简报，请将 is_complete 设为 true。' if answers_count >= 6 else '继续引导下一个关键维度。'}）"
+    )
+
     # 构造 LangChain messages
     messages = [SystemMessage(content=SYSTEM_PROMPT)]
 
-    for msg in conversation_history:
-        if msg["role"] == "assistant":
-            messages.append(AIMessage(content=msg["content"]))
-        else:
-            messages.append(HumanMessage(content=msg["content"]))
-
     if not conversation_history:
-        messages.append(HumanMessage(content="你好，我想开始制作短视频，请问我。"))
+        # 第一轮：直接发起开局问题
+        messages.append(HumanMessage(content=f"你好，我想开始制作短视频，请问我。{hint}"))
     else:
-        hint = (
-            f"（系统提示：已回答 {answers_count} 个问题。"
-            f"{'如果信息已足够生成创作简报，请将 is_complete 设为 true。' if answers_count >= 6 else '继续引导下一个关键维度。'}）"
-        )
-        messages.append(HumanMessage(content=hint))
+        # 把 history 中的消息按角色映射，并把 hint 内嵌到最后一条 user 消息里
+        # 避免连续两条 HumanMessage 导致部分模型返回空内容
+        last_user_idx = None
+        for i in range(len(conversation_history) - 1, -1, -1):
+            if conversation_history[i]["role"] == "user":
+                last_user_idx = i
+                break
+
+        for i, msg in enumerate(conversation_history):
+            role = msg["role"]
+            content = msg["content"]
+            if role == "assistant":
+                messages.append(AIMessage(content=content))
+            else:
+                # 最后一条 user 消息拼接 hint
+                if i == last_user_idx:
+                    content = f"{content}\n{hint}"
+                messages.append(HumanMessage(content=content))
+
+        # 如果 history 最后一条是 assistant（即第一轮只有 assistant 问题时）
+        # 需要补一条 user 消息让模型继续输出
+        if conversation_history[-1]["role"] == "assistant":
+            messages.append(HumanMessage(content=f"请继续提问。{hint}"))
 
     response = await llm.ainvoke(messages)
     return _parse_llm_json(response.content)
