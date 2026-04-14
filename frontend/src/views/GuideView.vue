@@ -512,20 +512,8 @@ function goToScript() {
   router.push(`/project/${projectId}/script`)
 }
 
-const briefKeyMap: Record<string, string> = {
-  content_type: '内容类型',
-  target_audience: '目标受众',
-  core_goal: '核心目标',
-  key_message: '核心信息',
-  tone_style: '风格调性',
-  product_name: '产品/品牌',
-  cta: '行动号召',
-  extra_notes: '补充说明',
-  tone: '语气风格',
-  duration_target: '目标时长',
-}
 function briefKeyLabel(k: string) {
-  return briefKeyMap[k] || k
+  return t(`guide.briefKeys.${k}`, k)
 }
 </script>
 
