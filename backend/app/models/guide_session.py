@@ -1,9 +1,13 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, Boolean, ForeignKey, func
+from datetime import datetime, timezone
+from sqlalchemy import String, DateTime, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 from app.models.types import JsonType
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class GuideSession(Base):
@@ -19,4 +23,4 @@ class GuideSession(Base):
     conversation_history: Mapped[list] = mapped_column(JsonType, default=list, nullable=True)
     # 问答模式标记
     mode: Mapped[str] = mapped_column(String(20), default="static", nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)

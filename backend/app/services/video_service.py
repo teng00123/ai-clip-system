@@ -46,6 +46,7 @@ async def save_uploaded_video(
         )
         db.add(video)
         await db.flush()
+        await db.refresh(video)
         return video
     finally:
         if os.path.exists(tmp_path):
