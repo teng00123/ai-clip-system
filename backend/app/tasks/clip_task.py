@@ -20,6 +20,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import time
 
 import redis as redis_lib
 
@@ -27,6 +28,11 @@ from app.config import settings
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
+# ─ 各步骤超时（秒）─────────────────────────────────────────────────────────────
+DOWNLOAD_TIMEOUT = 300   # 5 分钟，视频下载
+WHISPER_TIMEOUT  = 300   # 5 分钟，Whisper API
+UPLOAD_TIMEOUT   = 300   # 5 分钟，结果上传
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Redis helpers
@@ -151,8 +157,16 @@ def process_clip_job(self, job_id: str, video_id: str):
             # ── 3. Download video from MinIO ───────────────────────────────
             _publish(job_id, "progress", 10, "Downloading video…")
             from app.utils.storage import download_file
-            download_file(storage_path, local_video)
-            logger.info("Video downloaded to %s (%d bytes)", local_video, os.path.getsize(local_video))
+            import concurrent.futures as _cf
+            t0 = time.monotonic()
+            with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+                fut = _ex.submit(download_file, storage_path, local_video)
+                try:
+                    fut.result(timeout=DOWNLOAD_TIMEOUT)
+                except _cf.TimeoutError:
+                    raise RuntimeError(f"MinIO 下载超时（>{DOWNLOAD_TIMEOUT}s），请检查 MinIO 服务是否正常")
+            logger.info("Video downloaded to %s (%d bytes) in %.1fs",
+                        local_video, os.path.getsize(local_video), time.monotonic() - t0)
 
             # ── 4. Scene detection ─────────────────────────────────────────
             _publish(job_id, "progress", 20, "Detecting scenes…")
@@ -187,7 +201,15 @@ def process_clip_job(self, job_id: str, video_id: str):
             _publish(job_id, "progress", 90, "Uploading result…")
             output_object = f"outputs/{job_id}/output.mp4"
             from app.utils.storage import upload_file
-            upload_file(output_object, output_local, content_type="video/mp4")
+            import concurrent.futures as _cf
+            t0 = time.monotonic()
+            with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+                fut = _ex.submit(upload_file, output_object, output_local, "video/mp4")
+                try:
+                    fut.result(timeout=UPLOAD_TIMEOUT)
+                except _cf.TimeoutError:
+                    raise RuntimeError(f"MinIO 上传超时（>{UPLOAD_TIMEOUT}s），请检查 MinIO 服务是否正常")
+            logger.info("Output uploaded in %.1fs", time.monotonic() - t0)
 
         # ── 10. Mark done ──────────────────────────────────────────────────
         _update_job(
@@ -281,8 +303,11 @@ def _generate_subtitles(video_path: str) -> list[dict]:
     client = OpenAI(
         api_key=settings.OPENAI_API_KEY,
         base_url=settings.OPENAI_BASE_URL,
+        timeout=WHISPER_TIMEOUT,  # 加超时防止挂起
     )
 
+    logger.info("Calling Whisper API (model=%s, timeout=%ss)", settings.WHISPER_MODEL, WHISPER_TIMEOUT)
+    t0 = time.monotonic()
     with open(video_path, "rb") as f:
         transcript = client.audio.transcriptions.create(
             model=settings.WHISPER_MODEL,
@@ -291,6 +316,7 @@ def _generate_subtitles(video_path: str) -> list[dict]:
             timestamp_granularities=["segment"],
             language="zh",          # Chinese; set to None for auto-detect
         )
+    logger.info("Whisper API responded in %.1fs", time.monotonic() - t0)
 
     subtitles = []
     if hasattr(transcript, "segments") and transcript.segments:
@@ -482,8 +508,15 @@ def rerender_clip_job(self, job_id: str, video_id: str):
         with tempfile.TemporaryDirectory(prefix="rerender_") as tmpdir:
             local_video = os.path.join(tmpdir, "input.mp4")
             from app.utils.storage import download_file
-            download_file(storage_path, local_video)
-            logger.info("Video downloaded to %s", local_video)
+            import concurrent.futures as _cf
+            t0 = time.monotonic()
+            with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+                fut = _ex.submit(download_file, storage_path, local_video)
+                try:
+                    fut.result(timeout=DOWNLOAD_TIMEOUT)
+                except _cf.TimeoutError:
+                    raise RuntimeError(f"MinIO 下载超时（>{DOWNLOAD_TIMEOUT}s）")
+            logger.info("Video downloaded to %s in %.1fs", local_video, time.monotonic() - t0)
 
             _publish(job_id, "progress", 30, "Rebuilding subtitles…")
             # Rebuild SRT from plan transcript
@@ -504,7 +537,14 @@ def rerender_clip_job(self, job_id: str, video_id: str):
             _publish(job_id, "progress", 90, "Uploading result…")
             output_object = f"outputs/{job_id}/output.mp4"
             from app.utils.storage import upload_file
-            upload_file(output_object, output_local, content_type="video/mp4")
+            t0 = time.monotonic()
+            with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+                fut = _ex.submit(upload_file, output_object, output_local, "video/mp4")
+                try:
+                    fut.result(timeout=UPLOAD_TIMEOUT)
+                except _cf.TimeoutError:
+                    raise RuntimeError(f"MinIO 上传超时（>{UPLOAD_TIMEOUT}s）")
+            logger.info("Output uploaded in %.1fs", time.monotonic() - t0)
 
         _update_job(
             job_id,
