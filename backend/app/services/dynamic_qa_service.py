@@ -1,37 +1,40 @@
 """
-动态问答引擎 — 基于 OpenAI Chat Completions 实现多轮上下文感知问答。
+动态问答引擎 — 基于 LangChain + ChatOpenAI 实现多轮上下文感知问答。
 
 设计原则：
-- 无额外依赖（仅 openai SDK，已在 requirements.txt）
+- 使用 LangChain 统一调用，兼容 gpt-3.5-turbo 等不支持 response_format 的模型
 - 与静态模式完全兼容（OPENAI_API_KEY 为空时自动降级）
 - 对话历史存储在 GuideSession.conversation_history（JSONB）
-- 问题数量由 LLM 决定（6～12 题），通过 is_complete 标志控制结束
+- 问题数量由 LLM 决定（6～10 题），通过 is_complete 标志控制结束
 """
 
 from typing import Dict, Any, List, Optional
 import json
 import re
-from openai import AsyncOpenAI
+
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.output_parsers import StrOutputParser
+
 from app.config import settings
 
-# ── LLM client ────────────────────────────────────────────────────────────────
-_client: Optional[AsyncOpenAI] = None
 
+# ── LLM 工厂 ──────────────────────────────────────────────────────────────────
 
-def get_client() -> Optional[AsyncOpenAI]:
-    """获取 OpenAI 客户端；API Key 为空时返回 None（降级到静态模式）"""
-    global _client
+def _make_llm() -> Optional[ChatOpenAI]:
+    """API Key 为空时返回 None（降级到静态模式）"""
     if not settings.OPENAI_API_KEY:
         return None
-    if _client is None:
-        _client = AsyncOpenAI(
-            api_key=settings.OPENAI_API_KEY,
-            base_url=settings.OPENAI_BASE_URL,
-        )
-    return _client
+    return ChatOpenAI(
+        model=settings.OPENAI_MODEL,
+        api_key=settings.OPENAI_API_KEY,
+        base_url=settings.OPENAI_BASE_URL,
+        temperature=0.6,
+    )
 
 
 # ── Prompts ────────────────────────────────────────────────────────────────────
+
 SYSTEM_PROMPT = """\
 你是一位经验丰富的短视频内容策划顾问。你的任务是通过对话式问答，深入了解创作者的视频创作意图，\
 为后续的 AI 剧本生成收集充分信息。
@@ -58,13 +61,12 @@ SYSTEM_PROMPT = """\
   "is_complete": false 或 true（信息收集完毕时为 true）
 }
 
-当 is_complete 为 true 时，question 字段为空字符串。\
-"""
+当 is_complete 为 true 时，question 字段为空字符串。"""
 
 BRIEF_SYSTEM_PROMPT = """\
 你是一位专业的短视频内容策划师。根据以下创作者访谈对话，提炼出结构化的创作简报（Brief）。
 
-输出必须是严格的 JSON，格式如下：
+输出必须是严格的 JSON，不要加 markdown 代码块，格式如下：
 {
   "topic_category": "内容品类",
   "content_direction": "一句话内容方向",
@@ -75,20 +77,30 @@ BRIEF_SYSTEM_PROMPT = """\
   "reference_accounts": "参考账号（若未提及则留空）",
   "special_requirements": "特殊要求（若无则留空）",
   "summary": "100字以内的综合创作方向摘要"
-}\
-"""
+}"""
 
 
-# ── Core functions ──────────────────────────────────────────────────────────────
+# ── 工具函数 ──────────────────────────────────────────────────────────────────
 
 def _parse_llm_json(content: str) -> Dict:
-    """解析 LLM 返回的 JSON，容错处理 markdown fence"""
-    # 去掉 ```json ... ``` 包裹
+    """解析 LLM 返回的 JSON，容错处理 markdown fence 和前后说明文字"""
     content = content.strip()
     content = re.sub(r'^```(?:json)?\s*', '', content)
     content = re.sub(r'\s*```$', '', content)
-    return json.loads(content)
+    content = content.strip()
 
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        # 提取第一个 { ... } 块
+        start = content.find("{")
+        end = content.rfind("}") + 1
+        if start != -1 and end > start:
+            return json.loads(content[start:end])
+        raise
+
+
+# ── Core functions ──────────────────────────────────────────────────────────────
 
 async def get_next_question(
     conversation_history: List[Dict[str, str]],
@@ -96,48 +108,31 @@ async def get_next_question(
 ) -> Dict[str, Any]:
     """
     基于对话历史，让 LLM 生成下一个问题。
-
-    Returns:
-        {
-            "question": str,
-            "question_type": "single_choice" | "multi_choice" | "text_input",
-            "options": List[str] | None,
-            "is_complete": bool,
-        }
     """
-    client = get_client()
-    if client is None:
+    llm = _make_llm()
+    if llm is None:
         raise RuntimeError("OpenAI API Key not configured, dynamic mode unavailable")
 
-    # 构造消息列表：system + 对话历史
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(conversation_history)
+    # 构造 LangChain messages
+    messages = [SystemMessage(content=SYSTEM_PROMPT)]
 
-    # 首次问话 or 追问引导
+    for msg in conversation_history:
+        if msg["role"] == "assistant":
+            messages.append(AIMessage(content=msg["content"]))
+        else:
+            messages.append(HumanMessage(content=msg["content"]))
+
     if not conversation_history:
-        messages.append({
-            "role": "user",
-            "content": "你好，我想开始制作短视频，请问我。"
-        })
+        messages.append(HumanMessage(content="你好，我想开始制作短视频，请问我。"))
     else:
-        # 追加一个隐式提示，告知当前进度
-        messages.append({
-            "role": "user",
-            "content": (
-                f"（系统提示：已回答 {answers_count} 个问题。"
-                f"{'如果信息已足够生成创作简报，请将 is_complete 设为 true。' if answers_count >= 6 else '继续引导下一个关键维度。'}）"
-            )
-        })
+        hint = (
+            f"（系统提示：已回答 {answers_count} 个问题。"
+            f"{'如果信息已足够生成创作简报，请将 is_complete 设为 true。' if answers_count >= 6 else '继续引导下一个关键维度。'}）"
+        )
+        messages.append(HumanMessage(content=hint))
 
-    response = await client.chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        messages=messages,
-        temperature=0.6,
-        max_tokens=512,
-    )
-
-    content = response.choices[0].message.content
-    return _parse_llm_json(content)
+    response = await llm.ainvoke(messages)
+    return _parse_llm_json(response.content)
 
 
 async def generate_brief_from_history(
@@ -146,29 +141,23 @@ async def generate_brief_from_history(
     """
     基于完整对话历史，让 LLM 提炼结构化 Brief JSON。
     """
-    client = get_client()
-    if client is None:
+    llm = _make_llm()
+    if llm is None:
         raise RuntimeError("OpenAI API Key not configured")
 
-    # 把对话历史拼接为可读文本
     transcript_lines = []
     for msg in conversation_history:
         role_label = "顾问" if msg["role"] == "assistant" else "创作者"
         transcript_lines.append(f"{role_label}：{msg['content']}")
     transcript = "\n".join(transcript_lines)
 
-    response = await client.chat.completions.create(
-        model=settings.OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": BRIEF_SYSTEM_PROMPT},
-            {"role": "user", "content": f"以下是访谈对话记录：\n\n{transcript}"},
-        ],
-        temperature=0.3,
-        response_format={"type": "json_object"},
-    )
+    messages = [
+        SystemMessage(content=BRIEF_SYSTEM_PROMPT),
+        HumanMessage(content=f"以下是访谈对话记录：\n\n{transcript}"),
+    ]
 
-    content = response.choices[0].message.content
-    return _parse_llm_json(content)
+    response = await llm.ainvoke(messages)
+    return _parse_llm_json(response.content)
 
 
 def is_dynamic_mode_available() -> bool:
