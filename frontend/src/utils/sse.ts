@@ -35,8 +35,8 @@ export interface SSEOptions {
 export async function streamSSE(url: string, opts: SSEOptions): Promise<void> {
   const { method = 'POST', body, headers = {}, onToken, onDone, onError, signal } = opts
 
-  // 从 localStorage 取 token（与 axios client 一致）
-  const token = localStorage.getItem('access_token')
+  // 从 localStorage 取 token（与 auth store 一致，key 为 'token'）
+  const token = localStorage.getItem('token')
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
