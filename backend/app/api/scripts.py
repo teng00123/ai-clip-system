@@ -88,6 +88,7 @@ async def generate_script_for_project(
         project.status = "scripting"
 
     await db.flush()
+    await db.refresh(script)
     return ScriptOut.model_validate(script)
 
 
@@ -178,6 +179,7 @@ async def save_streamed_script(
         project.status = "scripting"
 
     await db.flush()
+    await db.refresh(script)
     return ScriptOut.model_validate(script)
 
 @router.get("/{project_id}/latest", response_model=ScriptOut)
@@ -229,6 +231,7 @@ async def update_script(
     script = await get_script_for_user(script_id, db, user)
     script.content = data.content
     await db.flush()
+    await db.refresh(script)
     return ScriptOut.model_validate(script)
 
 
@@ -318,6 +321,7 @@ async def apply_rewrite_endpoint(
     new_content = apply_rewrite(script.content, data.paragraph_index, data.rewritten_text)
     script.content = new_content
     await db.flush()
+    await db.refresh(script)
 
     return ScriptOut.model_validate(script)
 
