@@ -1,9 +1,13 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import String, DateTime, Float, Integer, ForeignKey, func
+from datetime import datetime, timezone
+from sqlalchemy import String, DateTime, Float, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 from app.models.types import JsonType
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class Video(Base):
@@ -18,4 +22,4 @@ class Video(Base):
     duration: Mapped[float] = mapped_column(Float, nullable=True)
     file_size: Mapped[int] = mapped_column(Integer, nullable=True)
     metadata_: Mapped[dict] = mapped_column("metadata", JsonType, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)

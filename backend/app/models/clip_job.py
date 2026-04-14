@@ -1,9 +1,13 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, ForeignKey, func
+from datetime import datetime, timezone
+from sqlalchemy import String, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 from app.models.types import JsonType
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class ClipJob(Base):
@@ -17,5 +21,5 @@ class ClipJob(Base):
     progress: Mapped[int] = mapped_column(Integer, default=0)
     output_path: Mapped[str] = mapped_column(String(500), nullable=True)
     error_msg: Mapped[str] = mapped_column(String(1000), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
