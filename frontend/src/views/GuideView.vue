@@ -2,25 +2,25 @@
   <div class="guide-page">
     <!-- Header -->
     <div class="guide-header">
-      <button class="btn-back" @click="router.push('/dashboard')">← 返回</button>
-      <span class="guide-title">创作向导</span>
+      <button class="btn-back" @click="router.push('/dashboard')">← {{ t('guide.back') }}</button>
+      <span class="guide-title">{{ t('guide.title') }}</span>
       <!-- Mode toggle — 仅在未开始时显示 -->
       <div v-if="!started && !initializing" class="mode-toggle">
         <button
           :class="['mode-btn', { active: mode === 'static' }]"
           @click="mode = 'static'"
-          title="固定 8 道题，快速完成"
-        >📋 经典模式</button>
+          :title="t('guide.staticDesc')"
+        >📋 {{ t('guide.static') }}</button>
         <button
           :class="['mode-btn', { active: mode === 'dynamic' }]"
           @click="mode = 'dynamic'"
           :disabled="!dynamicAvailable"
-          :title="dynamicAvailable ? 'AI 自适应问答，6~10 轮' : '需要配置 OPENAI_API_KEY'"
-        >✦ AI 动态模式{{ dynamicAvailable ? '' : '（未配置）' }}</button>
+          :title="dynamicAvailable ? t('guide.dynamicDesc') : t('guide.dynamicUnavailable')"
+        >✦ {{ t('guide.dynamic') }}{{ dynamicAvailable ? '' : '（' + t('guide.dynamicUnavailable') + '）' }}</button>
       </div>
       <!-- progress indicator when in dynamic mode -->
       <span v-else-if="mode === 'dynamic' && started && !completed" class="step-counter dynamic-counter">
-        ✦ 已回答 {{ dynamicAnswersCount }} 题
+        ✦ {{ t('guide.answeredCount', { count: dynamicAnswersCount }) }}
       </span>
       <span v-else-if="mode === 'static' && question" class="step-counter">
         {{ question.step + 1 }} / {{ question.total_steps }}
@@ -42,7 +42,7 @@
       <!-- loading -->
       <div v-if="guideStore.loading || initializing" class="center-area">
         <div class="spinner"></div>
-        <p class="hint">{{ dynamicLoading ? 'AI 思考中…' : '加载中…' }}</p>
+        <p class="hint">{{ dynamicLoading ? t('guide.thinking') : t('guide.loading') }}</p>
       </div>
 
       <!-- MODE SELECT — before started -->
@@ -54,9 +54,9 @@
             @click="mode = 'static'"
           >
             <div class="mode-card-icon">📋</div>
-            <div class="mode-card-title">经典模式</div>
-            <div class="mode-card-desc">8 道固定问题，快速完成，适合初次使用。</div>
-            <div class="mode-card-badge">推荐</div>
+            <div class="mode-card-title">{{ t('guide.static') }}</div>
+            <div class="mode-card-desc">{{ t('guide.staticDesc') }}</div>
+            <div class="mode-card-badge">{{ t('guide.recommended') }}</div>
           </div>
           <!-- Dynamic card -->
           <div
@@ -64,30 +64,30 @@
             @click="dynamicAvailable && (mode = 'dynamic')"
           >
             <div class="mode-card-icon">✦</div>
-            <div class="mode-card-title">AI 动态模式</div>
-            <div class="mode-card-desc">AI 根据你的回答追问，6~10 轮，更精准理解需求。</div>
-            <div v-if="!dynamicAvailable" class="mode-card-badge disabled-badge">需配置 AI Key</div>
-            <div v-else class="mode-card-badge dynamic-badge">智能</div>
+            <div class="mode-card-title">{{ t('guide.dynamic') }}</div>
+            <div class="mode-card-desc">{{ t('guide.dynamicDesc') }}</div>
+            <div v-if="!dynamicAvailable" class="mode-card-badge disabled-badge">{{ t('guide.dynamicUnavailable') }}</div>
+            <div v-else class="mode-card-badge dynamic-badge">{{ t('guide.smart') }}</div>
           </div>
         </div>
         <button class="btn-primary btn-lg" @click="startMode">
-          开始向导 →
+          {{ t('guide.start') }} →
         </button>
       </div>
 
       <!-- completed -->
       <div v-else-if="completed" class="center-area done-area">
         <div class="done-icon">🎉</div>
-        <h2>问答完成！</h2>
-        <p class="hint">素材已收集完毕，正在为你生成创作简报。</p>
+        <h2>{{ t('guide.completed') }}</h2>
+        <p class="hint">{{ t('guide.completedDesc') }}</p>
         <div v-if="brief" class="brief-preview">
-          <h3>创作简报</h3>
+          <h3>{{ t('guide.viewBrief') }}</h3>
           <div class="brief-row" v-for="(v, k) in brief" :key="k">
             <span class="brief-key">{{ briefKeyLabel(String(k)) }}</span>
             <span class="brief-val">{{ v }}</span>
           </div>
         </div>
-        <button class="btn-primary btn-lg" @click="goToScript">去生成剧本 →</button>
+        <button class="btn-primary btn-lg" @click="goToScript">{{ t('guide.nextStep') }} →</button>
       </div>
 
       <!-- Static mode: question -->
@@ -115,7 +115,7 @@
                 class="answer-textarea"
                 @keydown.ctrl.enter="submitIfReady"
               ></textarea>
-              <p class="input-hint">Ctrl + Enter 提交</p>
+              <p class="input-hint">Ctrl + Enter {{ t('guide.submit') }}</p>
             </div>
 
             <p v-if="errMsg" class="err-msg">{{ errMsg }}</p>
@@ -132,7 +132,7 @@
                 @click="submit"
               >
                 <span v-if="submitting" class="mini-spin"></span>
-                <span v-else>{{ isLastStep ? '完成' : '下一步 →' }}</span>
+                <span v-else>{{ isLastStep ? t('guide.complete') : t('guide.next') + ' →' }}</span>
               </button>
             </div>
           </div>
@@ -213,7 +213,7 @@
           <div v-else class="dynamic-text-input">
             <textarea
               v-model="answer"
-              placeholder="输入你的回答… (Ctrl+Enter 发送)"
+              :placeholder="t('guide.answerPlaceholder') + ' (Ctrl+Enter)'"
               rows="3"
               class="answer-textarea"
               @keydown.ctrl.enter="submitDynamic"
@@ -246,11 +246,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useGuideStore } from '@/stores/guide'
 import * as guideApi from '@/api/guide'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const guideStore = useGuideStore()
 
 const projectId = route.params.projectId as string
@@ -286,16 +288,16 @@ const canSubmit = computed(() => {
   return answer.value.trim().length > 0
 })
 const inputPlaceholder = computed(() => {
-  if (!question.value) return '请输入你的回答…'
+  if (!question.value) return t('guide.answerPlaceholder')
   const s = question.value.step
   const hints: Record<number, string> = {
-    1: '例如：宠物博主、美食探店、职场干货…',
-    2: '例如：18~35岁上班族，喜欢健康生活…',
-    3: '例如：让更多人了解我的手工皂品牌',
-    5: '例如：轻松幽默、真诚分享、干货满满…',
-    7: '例如：欢迎点赞关注，评论你的想法！',
+    1: t('guide.hints.step1', '例如：宠物博主、美食探店、职场干货…'),
+    2: t('guide.hints.step2', '例如：18~35岁上班族，喜欢健康生活…'),
+    3: t('guide.hints.step3', '例如：让更多人了解我的手工皂品牌'),
+    5: t('guide.hints.step5', '例如：轻松幽默、真诚分享、干货满满…'),
+    7: t('guide.hints.step7', '例如：欢迎点赞关注，评论你的想法！'),
   }
-  return hints[s] || '请输入你的回答…'
+  return hints[s] || t('guide.answerPlaceholder')
 })
 
 // ── Dynamic mode state ────────────────────────────────────────────────────────
@@ -519,20 +521,8 @@ function goToScript() {
   router.push(`/project/${projectId}/script`)
 }
 
-const briefKeyMap: Record<string, string> = {
-  content_type: '内容类型',
-  target_audience: '目标受众',
-  core_goal: '核心目标',
-  key_message: '核心信息',
-  tone_style: '风格调性',
-  product_name: '产品/品牌',
-  cta: '行动号召',
-  extra_notes: '补充说明',
-  tone: '语气风格',
-  duration_target: '目标时长',
-}
 function briefKeyLabel(k: string) {
-  return briefKeyMap[k] || k
+  return t(`guide.briefKeys.${k}`, k)
 }
 </script>
 

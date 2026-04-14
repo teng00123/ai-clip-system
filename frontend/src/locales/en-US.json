@@ -103,7 +103,26 @@
     "thinking": "AI thinking...",
     "answeredCount": "Answered {count} questions",
     "viewBrief": "View Brief",
-    "nextStep": "Next: Write Script"
+    "nextStep": "Next: Write Script",
+    "hints": {
+      "step1": "e.g.: Pet blogger, food explorer, workplace tips...",
+      "step2": "e.g.: 18~35 office workers, love healthy lifestyle...",
+      "step3": "e.g.: Make more people know my handmade soap brand",
+      "step5": "e.g.: Light and humorous, sincere sharing, full of insights...",
+      "step7": "e.g.: Welcome to like and follow, comment your thoughts!"
+    },
+    "briefKeys": {
+      "content_type": "Content Type",
+      "target_audience": "Target Audience",
+      "core_goal": "Core Goal",
+      "key_message": "Key Message",
+      "tone_style": "Tone & Style",
+      "product_name": "Product/Brand",
+      "cta": "Call to Action",
+      "extra_notes": "Extra Notes",
+      "tone": "Tone",
+      "duration_target": "Target Duration"
+    }
   },
   "script": {
     "title": "Script Editor",
