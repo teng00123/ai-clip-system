@@ -33,6 +33,7 @@ def _make_llm() -> Optional[ChatOpenAI]:
         api_key=settings.OPENAI_API_KEY,
         base_url=settings.OPENAI_BASE_URL,
         temperature=0.6,
+        model_kwargs={"response_format": {"type": "json_object"}},
     )
 
 
@@ -124,10 +125,10 @@ async def get_next_question(
     llm = _make_llm()
     if llm is None:
         raise RuntimeError("OpenAI API Key not configured, dynamic mode unavailable")
-
     hint = (
-        f"\uff08系统提示：已回答 {answers_count} 个问题。"
-        f"{'如果信息已足够生成创作简报，请将 is_complete 设为 true。' if answers_count >= 6 else '继续引导下一个关键维度。'}）"
+        f"[SYSTEM] 已回答 {answers_count} 题。"
+        f"{'information is sufficient, set is_complete=true.' if answers_count >= 6 else '请继续提问下一个维度。'}"
+        f" 必须返回指定格式的 JSON，不得纯文字回答。"
     )
 
     # 构造 LangChain messages
