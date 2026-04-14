@@ -9,18 +9,18 @@
         <button
           :class="['mode-btn', { active: mode === 'static' }]"
           @click="mode = 'static'"
-          :title="t('guide.staticDesc')"
+          :title="t('guide.classicTooltip')"
         >📋 {{ t('guide.static') }}</button>
         <button
           :class="['mode-btn', { active: mode === 'dynamic' }]"
           @click="mode = 'dynamic'"
           :disabled="!dynamicAvailable"
-          :title="dynamicAvailable ? t('guide.dynamicDesc') : t('guide.dynamicUnavailable')"
-        >✦ {{ t('guide.dynamic') }}{{ dynamicAvailable ? '' : '（' + t('guide.dynamicUnavailable') + '）' }}</button>
+          :title="dynamicAvailable ? t('guide.dynamicTooltip') : t('guide.dynamicTooltipUnavailable')"
+        >✦ {{ t('guide.dynamic') }}{{ dynamicAvailable ? '' : t('guide.dynamicUnavailableTitle') }}</button>
       </div>
       <!-- progress indicator when in dynamic mode -->
       <span v-else-if="mode === 'dynamic' && started && !completed" class="step-counter dynamic-counter">
-        ✦ {{ t('guide.answeredCount', { count: dynamicAnswersCount }) }}
+        ✦ {{ t('guide.answeredLabel', { count: dynamicAnswersCount }) }}
       </span>
       <span v-else-if="mode === 'static' && question" class="step-counter">
         {{ question.step + 1 }} / {{ question.total_steps }}
@@ -71,23 +71,23 @@
           </div>
         </div>
         <button class="btn-primary btn-lg" @click="startMode">
-          {{ t('guide.start') }} →
+          {{ t('guide.startArrow') }}
         </button>
       </div>
 
       <!-- completed -->
       <div v-else-if="completed" class="center-area done-area">
         <div class="done-icon">🎉</div>
-        <h2>{{ t('guide.completed') }}</h2>
-        <p class="hint">{{ t('guide.completedDesc') }}</p>
+        <h2>{{ t('guide.doneTitle') }}</h2>
+        <p class="hint">{{ t('guide.doneDesc') }}</p>
         <div v-if="brief" class="brief-preview">
-          <h3>{{ t('guide.viewBrief') }}</h3>
+          <h3>{{ t('guide.briefTitle') }}</h3>
           <div class="brief-row" v-for="(v, k) in brief" :key="k">
             <span class="brief-key">{{ briefKeyLabel(String(k)) }}</span>
             <span class="brief-val">{{ v }}</span>
           </div>
         </div>
-        <button class="btn-primary btn-lg" @click="goToScript">{{ t('guide.nextStep') }} →</button>
+        <button class="btn-primary btn-lg" @click="goToScript">{{ t('guide.goToScript') }}</button>
       </div>
 
       <!-- Static mode: question -->
@@ -115,7 +115,7 @@
                 class="answer-textarea"
                 @keydown.ctrl.enter="submitIfReady"
               ></textarea>
-              <p class="input-hint">Ctrl + Enter {{ t('guide.submit') }}</p>
+              <p class="input-hint">{{ t('guide.ctrlEnterHint') }}</p>
             </div>
 
             <p v-if="errMsg" class="err-msg">{{ errMsg }}</p>
@@ -125,14 +125,14 @@
                 class="btn-ghost"
                 @click="skipAnswer"
                 v-if="question.question_type === 'text_input'"
-              >跳过</button>
+              >{{ t('guide.skip') }}</button>
               <button
                 class="btn-primary"
                 :disabled="!canSubmit || submitting"
                 @click="submit"
               >
                 <span v-if="submitting" class="mini-spin"></span>
-                <span v-else>{{ isLastStep ? t('guide.complete') : t('guide.next') + ' →' }}</span>
+                <span v-else>{{ isLastStep ? t('guide.complete') : t('guide.nextArrow') }}</span>
               </button>
             </div>
           </div>
@@ -150,14 +150,14 @@
           >
             <div class="bubble-avatar">
               <span v-if="msg.role === 'assistant'">✦</span>
-              <span v-else>你</span>
+              <span v-else>{{ t('guide.you') }}</span>
             </div>
             <div class="bubble-body">
               <div class="bubble-text">{{ msg.content }}</div>
             </div>
           </div>
           <!-- Typing indicator when waiting for LLM -->
-          <div v-if="dynamicLoading" class="chat-bubble assistant typing-indicator">
+          <div v-if="dynamicLoading" class="chat-bubble assistant">
             <div class="bubble-avatar"><span>✦</span></div>
             <div class="bubble-body">
               <div class="bubble-text typing-dots">
@@ -184,7 +184,7 @@
                 @click="submitDynamic"
               >
                 <span v-if="submitting" class="mini-spin"></span>
-                <span v-else>发送 →</span>
+                <span v-else>{{ t('guide.send') }}</span>
               </button>
             </div>
           </div>
@@ -204,7 +204,7 @@
                 @click="submitDynamic"
               >
                 <span v-if="submitting" class="mini-spin"></span>
-                <span v-else>发送 →</span>
+                <span v-else>{{ t('guide.send') }}</span>
               </button>
             </div>
           </div>
@@ -213,20 +213,20 @@
           <div v-else class="dynamic-text-input">
             <textarea
               v-model="answer"
-              :placeholder="t('guide.answerPlaceholder') + ' (Ctrl+Enter)'"
+              :placeholder="t('guide.dynamicInputPlaceholder')"
               rows="3"
               class="answer-textarea"
               @keydown.ctrl.enter="submitDynamic"
             ></textarea>
             <div class="dynamic-text-footer">
-              <button class="btn-ghost btn-sm" @click="skipDynamic">跳过</button>
+              <button class="btn-ghost btn-sm" @click="skipDynamic">{{ t('guide.skip') }}</button>
               <button
                 class="btn-primary"
                 :disabled="!canSubmit || submitting"
                 @click="submitDynamic"
               >
                 <span v-if="submitting" class="mini-spin"></span>
-                <span v-else>发送 →</span>
+                <span v-else>{{ t('guide.send') }}</span>
               </button>
             </div>
           </div>
@@ -237,14 +237,14 @@
 
       <!-- fallback -->
       <div v-else class="center-area">
-        <p class="hint">暂无问题</p>
+        <p class="hint">{{ t('guide.noQuestion') }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGuideStore } from '@/stores/guide'
@@ -288,16 +288,7 @@ const canSubmit = computed(() => {
   return answer.value.trim().length > 0
 })
 const inputPlaceholder = computed(() => {
-  if (!question.value) return t('guide.answerPlaceholder')
-  const s = question.value.step
-  const hints: Record<number, string> = {
-    1: t('guide.hints.step1', '例如：宠物博主、美食探店、职场干货…'),
-    2: t('guide.hints.step2', '例如：18~35岁上班族，喜欢健康生活…'),
-    3: t('guide.hints.step3', '例如：让更多人了解我的手工皂品牌'),
-    5: t('guide.hints.step5', '例如：轻松幽默、真诚分享、干货满满…'),
-    7: t('guide.hints.step7', '例如：欢迎点赞关注，评论你的想法！'),
-  }
-  return hints[s] || t('guide.answerPlaceholder')
+  return t('guide.answerPlaceholder')
 })
 
 // ── Dynamic mode state ────────────────────────────────────────────────────────
@@ -352,7 +343,7 @@ onMounted(async () => {
     }
     // If there's already a session, auto-start with its mode
     if (res.data?.id) {
-      mode.value = (res.data.mode as GuideMode) || 'static'
+      mode.value = ((res.data as any).mode as GuideMode) || 'static'
       started.value = true
       if (mode.value === 'static') {
         await guideStore.startGuide(projectId)
@@ -388,7 +379,7 @@ async function startMode() {
     }
     started.value = true
   } catch (e: any) {
-    errMsg.value = e?.response?.data?.detail || '启动失败，请重试'
+    errMsg.value = e?.response?.data?.detail || t('guide.startFailed')
   } finally {
     initializing.value = false
   }
@@ -437,7 +428,7 @@ async function submit() {
       await loadBrief()
     }
   } catch (e: any) {
-    errMsg.value = e?.response?.data?.detail || '提交失败，请重试'
+    errMsg.value = e?.response?.data?.detail || t('guide.submitFailed')
   } finally {
     submitting.value = false
   }
@@ -494,7 +485,7 @@ async function submitDynamic() {
       await scrollChatToBottom()
     }
   } catch (e: any) {
-    errMsg.value = e?.response?.data?.detail || 'AI 响应失败，请重试'
+    errMsg.value = e?.response?.data?.detail || t('guide.aiFailed')
     chatMessages.value.pop() // revert optimistic user bubble
   } finally {
     submitting.value = false
