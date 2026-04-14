@@ -204,7 +204,12 @@ async def dynamic_start(
     try:
         result = await get_next_question(history, answers_count=0)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"LLM error: {str(e)}")
+        err = str(e)
+        if "OPENAI_API_KEY" in err or "API Key" in err or "api_key" in err.lower() or "Unauthorized" in err or "401" in err:
+            raise HTTPException(status_code=503, detail="AI 服务认证失败，请检查 OPENAI_API_KEY 是否正确")
+        if "空内容" in err or "empty" in err.lower():
+            raise HTTPException(status_code=503, detail="AI 服务返回空内容，请检查 OPENAI_API_KEY 和 OPENAI_BASE_URL 配置")
+        raise HTTPException(status_code=502, detail=f"LLM 调用失败：{err}")
 
     # 将 assistant 的第一个问题追加到历史
     if result["question"]:
@@ -261,7 +266,12 @@ async def dynamic_answer(
     try:
         result = await get_next_question(history, answers_count=answers_count)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"LLM error: {str(e)}")
+        err = str(e)
+        if "OPENAI_API_KEY" in err or "API Key" in err or "api_key" in err.lower() or "Unauthorized" in err or "401" in err:
+            raise HTTPException(status_code=503, detail="AI 服务认证失败，请检查 OPENAI_API_KEY 是否正确")
+        if "空内容" in err or "empty" in err.lower():
+            raise HTTPException(status_code=503, detail="AI 服务返回空内容，请检查 OPENAI_API_KEY 和 OPENAI_BASE_URL 配置")
+        raise HTTPException(status_code=502, detail=f"LLM 调用失败：{err}")
 
     is_complete = result.get("is_complete", False)
 
