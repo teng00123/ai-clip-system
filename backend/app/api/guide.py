@@ -19,6 +19,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm.attributes import flag_modified
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.user import User
@@ -257,6 +260,7 @@ async def dynamic_answer(
 
     # 1. 把用户回答追加到对话历史
     history = list(session.conversation_history or [])
+    logger.warning("[DYN-ANSWER] project=%s db_history=%r", project_id, history)
     history.append({"role": "user", "content": data.answer})
 
     # 2. 记录到 answers（用轮次作为 key，保持与静态模式兼容）
