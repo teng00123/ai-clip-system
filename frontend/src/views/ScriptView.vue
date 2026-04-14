@@ -426,7 +426,7 @@ async function handleGenerate() {
       }
     },
     onError(msg) {
-      errMsg.value = msg || '生成失败，请重试'
+      errMsg.value = msg || 'AI 服务连接失败，请检查网络或 API 配置'
       scriptStore.generating = false
       generatingRaw.value = ''
     },

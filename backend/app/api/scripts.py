@@ -21,6 +21,7 @@ from sqlalchemy import select, update
 from typing import List
 import uuid
 from app.database import get_db
+from app.config import settings
 from app.models.user import User
 from app.models.script import Script
 from app.schemas.script import (
@@ -112,6 +113,10 @@ async def generate_script_stream_endpoint(
     brief = guide.brief
     fmt = req.format
 
+    # 提前检查 API Key，避免 SSE 建立后才报错
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="AI 服务未配置，请联系管理员设置 OPENAI_API_KEY")
+
     async def event_generator():
         try:
             async for token in generate_script_stream(brief, fmt=fmt):
@@ -119,7 +124,18 @@ async def generate_script_stream_endpoint(
                 yield f"data: {safe}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
-            yield f"event: error\ndata: {str(e)}\n\n"
+            err = str(e)
+            if "Connection" in err or "connect" in err.lower() or "network" in err.lower():
+                msg = "AI 服务连接失败，请检查网络或 API 配置"
+            elif "401" in err or "Unauthorized" in err or "api_key" in err.lower():
+                msg = "AI API Key 无效，请联系管理员"
+            elif "429" in err or "rate" in err.lower():
+                msg = "AI 请求过于频繁，请稍后重试"
+            elif "timeout" in err.lower():
+                msg = "AI 服务响应超时，请重试"
+            else:
+                msg = f"生成失败：{err}"
+            yield f"event: error\ndata: {msg}\n\n"
 
     return StreamingResponse(
         event_generator(),
